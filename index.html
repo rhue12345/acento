@@ -94,12 +94,28 @@ input, select, textarea { font: inherit; color: var(--fg); background: var(--sur
     <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
     <label for="model" class="label">Modelo del entrenador</label>
     <select id="model">
-      <option value="claude-opus-5-5">Mejor (Claude Opus 5.5): unos 1–3 centavos por turno</option>
-      <option value="claude-haiku-5-5">Económico (Claude Haiku 5.5): menos de 1 centavo por conversación, respuestas más flojas</option>
+      <option value="claude-opus-5-5">Mejor: Claude Opus 5.5 (1–3 ¢/turno)</option>
+      <option value="claude-haiku-5-5">Económico: Claude Haiku 5.5 (Económico (Claude Haiku 5.5): menos de 1 centavo por conversación, respuestas más flojaslt;1 ¢/conversación)</option>
     </select>
-    <label for="voice" class="label">Voz en español</label>
-    <div class="dock-row"><select id="voice"></select><button class="ghost" id="testVoice">▶ Probar</button></div>
-    <p class="muted" style="margin:0;font-size:0.9rem">Las voces “Google”, “Natural” u “Online” suelen sonar mejor. Si no aparece ninguna, tu dispositivo no tiene voces en español instaladas.</p>
+    <h2 style="margin-top:8px">Voces naturales (ElevenLabs)</h2>
+    <p class="muted" style="margin:0">Pega tu clave de <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener">ElevenLabs</a> para voces humanas. Añade voces con el acento que practicas desde la <a href="https://elevenlabs.io/app/voice-library" target="_blank" rel="noopener">biblioteca de voces</a> (busca “Mexican Spanish”, “Spain Spanish”, etc.) y luego pulsa “Cargar mis voces”.</p>
+    <label for="elKey" class="label">Clave de ElevenLabs</label>
+    <input id="elKey" type="password" placeholder="sk_..." autocomplete="off">
+    <div class="dock-row"><button class="ghost" id="loadVoices">Cargar mis voces</button><span class="muted" id="voiceStatus"></span></div>
+    <div class="grid2">
+      <label class="label">Voz femenina<select id="elFemale"></select></label>
+      <label class="label">Voz masculina<select id="elMale"></select></label>
+    </div>
+    <label for="elModel" class="label">Calidad de voz</label>
+    <select id="elModel">
+      <option value="eleven_multilingual_v2">Máxima calidad (Multilingual v2)</option>
+      <option value="eleven_flash_v2_5">Más rápida (Flash v2.5)</option>
+    </select>
+    <div class="dock-row"><button class="ghost" id="testVoice">▶ Probar voces</button></div>
+    <details>
+      <summary class="muted">Sin ElevenLabs: voz del navegador</summary>
+      <div class="dock-row" style="margin-top:8px"><select id="voice"></select></div>
+    </details>
     <div class="dock-row"><button class="primary" id="saveKey">Guardar</button><button class="ghost" id="closeSettings">Cerrar</button></div>
   </section>
 
@@ -149,12 +165,12 @@ input, select, textarea { font: inherit; color: var(--fg); background: var(--sur
 import Anthropic from "./vendor/anthropic-sdk.mjs";
 
 const SCENES = [
-  { id: "cafe", title: "Cafetería", blurb: "Pide el desayuno a una camarera habladora.", role: "Lucía, a quick-witted waiter in her 30s at a busy neighborhood café. She knows the regulars, has opinions about the pastries, and is a little rushed at the morning peak. The menu: café con leche, cortado, tostada con tomate, croissant, churros, zumo de naranja, tortilla", opener: "Lucía comes to the table and greets the customer" },
-  { id: "taxi", title: "En el taxi", blurb: "Dile al taxista adónde vas y charla un rato.", role: "Don Ramón, a talkative taxi driver in his 60s who has driven the city for 30 years, loves football and his grandkids, and always has a restaurant recommendation", opener: "the passenger gets in and Ramón greets them" },
-  { id: "market", title: "En el mercado", blurb: "Compra fruta, pregunta precios y regatea un poco.", role: "Marisol, a fruit vendor at an outdoor market who is proud of her mangos and will give a small discount if you're friendly or buy a lot. Prices are per kilo; make them realistic for the region", opener: "Marisol calls out to the customer passing her stall" },
-  { id: "directions", title: "Perdido en la ciudad", blurb: "Pregunta a alguien cómo llegar.", role: "Andrés, a university student walking to class who is happy to help but a bit hurried. He knows the area well: the metro, the main square, the museum, a good cheap restaurant", opener: "Andrés notices the learner looking at their phone, confused, and asks if they need help" },
-  { id: "friend", title: "Nueva amistad", blurb: "Conoce a alguien en una fiesta.", role: "Vale, a friendly graphic designer at a friend's house party. She likes music, travel and cooking, and is curious about where the learner is from and why they're learning Spanish", opener: "Vale introduces herself at the snack table" },
-  { id: "doctor", title: "En la farmacia", blurb: "Explica que te duele la cabeza y pide algo.", role: "Carmen, a calm, careful pharmacist who asks about symptoms, allergies and how long it's been going on before recommending something over the counter", opener: "Carmen greets the customer at the counter" },
+  { id: "cafe", gender: "f", title: "Cafetería", blurb: "Pide el desayuno a una camarera habladora.", role: "Lucía, a quick-witted waiter in her 30s at a busy neighborhood café. She knows the regulars, has opinions about the pastries, and is a little rushed at the morning peak. The menu: café con leche, cortado, tostada con tomate, croissant, churros, zumo de naranja, tortilla", opener: "Lucía comes to the table and greets the customer" },
+  { id: "taxi", gender: "m", title: "En el taxi", blurb: "Dile al taxista adónde vas y charla un rato.", role: "Don Ramón, a talkative taxi driver in his 60s who has driven the city for 30 years, loves football and his grandkids, and always has a restaurant recommendation", opener: "the passenger gets in and Ramón greets them" },
+  { id: "market", gender: "f", title: "En el mercado", blurb: "Compra fruta, pregunta precios y regatea un poco.", role: "Marisol, a fruit vendor at an outdoor market who is proud of her mangos and will give a small discount if you're friendly or buy a lot. Prices are per kilo; make them realistic for the region", opener: "Marisol calls out to the customer passing her stall" },
+  { id: "directions", gender: "m", title: "Perdido en la ciudad", blurb: "Pregunta a alguien cómo llegar.", role: "Andrés, a university student walking to class who is happy to help but a bit hurried. He knows the area well: the metro, the main square, the museum, a good cheap restaurant", opener: "Andrés notices the learner looking at their phone, confused, and asks if they need help" },
+  { id: "friend", gender: "f", title: "Nueva amistad", blurb: "Conoce a alguien en una fiesta.", role: "Vale, a friendly graphic designer at a friend's house party. She likes music, travel and cooking, and is curious about where the learner is from and why they're learning Spanish", opener: "Vale introduces herself at the snack table" },
+  { id: "doctor", gender: "f", title: "En la farmacia", blurb: "Explica que te duele la cabeza y pide algo.", role: "Carmen, a calm, careful pharmacist who asks about symptoms, allergies and how long it's been going on before recommending something over the counter", opener: "Carmen greets the customer at the counter" },
 ];
 
 const SCHEMA = {
@@ -315,7 +331,79 @@ function voiceFor(lang) {
   const score = v => (v.lang.replace("_", "-") === lang ? 10 : region === "US" && /MX|419/.test(v.lang) ? 6 : region !== "ES" && !/ES$/i.test(v.lang) ? 4 : 2) + quality(v);
   return vs.sort((a, b) => score(b) - score(a))[0] || null;
 }
-async function speak(text, rate = 1) {
+function pref(k, d = "") { try { return localStorage.getItem("acento." + k) || d; } catch { return d; } }
+function setPref(k, v) { try { localStorage.setItem("acento." + k, v); } catch {} }
+
+// ---- ElevenLabs ----
+const ACCENT = {
+  "es-MX": /mexic/i, "es-ES": /spain|spanish \(spain\)|castil|peninsular|españ|madrid|european/i,
+  "es-AR": /argent|rioplat/i, "es-CO": /colomb/i, "es-US": /latin|mexic|\bus\b|american|neutral/i,
+};
+let elVoices = [];
+async function loadElVoices() {
+  const key = pref("elKey");
+  if (!key) return [];
+  const res = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": key } });
+  if (!res.ok) throw new Error(res.status === 401 ? "La clave de ElevenLabs no es válida." : `ElevenLabs devolvió un error (${res.status}).`);
+  elVoices = (await res.json()).voices || [];
+  return elVoices;
+}
+const voiceText = v => [v.name, v.description, ...Object.values(v.labels || {}), ...(v.verified_languages || []).flatMap(l => [l.language, l.accent, l.locale])].filter(Boolean).join(" ");
+const isSpanish = v => /spanish|español|\bes\b|es-/i.test(voiceText(v));
+function voiceGender(v) { const g = (v.labels?.gender || "").toLowerCase(); return g.startsWith("f") ? "f" : g.startsWith("m") ? "m" : ""; }
+// The chosen voice for this gender, or the best match for the accent you're practicing.
+function pickElVoice(gender) {
+  const chosen = pref(gender === "m" ? "elMale" : "elFemale");
+  if (chosen) return chosen;
+  const accent = ACCENT[$("dialect").value];
+  const score = v => (accent.test(voiceText(v)) ? 10 : 0) + (isSpanish(v) ? 5 : 0) + (voiceGender(v) === gender ? 3 : voiceGender(v) ? -3 : 0);
+  return [...elVoices].sort((x, y) => score(y) - score(x))[0]?.voice_id || "";
+}
+
+const audioCache = new Map();
+let currentAudio = null;
+function stopSpeaking() { speechSynthesis.cancel(); if (currentAudio) { currentAudio.pause(); currentAudio.finish(); } }
+
+async function elevenAudio(text, voiceId, speed) {
+  const id = `${voiceId}|${speed}|${pref("elModel", "eleven_multilingual_v2")}|${text}`;
+  if (audioCache.has(id)) return audioCache.get(id);
+  const model = pref("elModel", "eleven_multilingual_v2");
+  const body = { text, model_id: model, voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0.2, speed } };
+  if (model === "eleven_flash_v2_5") body.language_code = "es";
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+    method: "POST", headers: { "xi-api-key": pref("elKey"), "content-type": "application/json", accept: "audio/mpeg" }, body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(res.status === 401 ? (/quota/i.test(detail) ? "Se acabaron tus caracteres de ElevenLabs este mes." : "La clave de ElevenLabs no es válida.")
+      : res.status === 429 ? "ElevenLabs está ocupado o se acabaron tus caracteres." : `ElevenLabs devolvió un error (${res.status}).`);
+  }
+  const url = URL.createObjectURL(await res.blob());
+  audioCache.set(id, url);
+  return url;
+}
+
+// Speaks Spanish with ElevenLabs when set up; otherwise the best Spanish browser voice. Never an English voice.
+async function speak(text, rate = 1, gender = state.scene.gender) {
+  stopSpeaking();
+  if (pref("elKey")) {
+    try {
+      if (!elVoices.length) await loadElVoices();
+      const voiceId = pickElVoice(gender);
+      if (voiceId) {
+        const url = await elevenAudio(text, voiceId, rate < 1 ? 0.8 : 1);
+        return await new Promise(resolve => {
+          const audio = new Audio(url); currentAudio = audio;
+          audio.finish = audio.onended = audio.onerror = () => { if (currentAudio === audio) currentAudio = null; resolve(); };
+          audio.play().catch(resolve);
+        });
+      }
+    } catch (e) { showError(e.message + " Usando la voz del navegador."); }
+  }
+  return browserSpeak(text, rate);
+}
+
+async function browserSpeak(text, rate = 1) {
   await voicesReady;
   const v = voiceFor($("dialect").value);
   if (!v) { showError("Este navegador no tiene ninguna voz en español, así que no puede leer las respuestas en voz alta correctamente. Lee el texto o instala una voz en español en los ajustes de texto a voz de tu dispositivo."); return; }
@@ -323,7 +411,7 @@ async function speak(text, rate = 1) {
     const u = new SpeechSynthesisUtterance(text);
     u.voice = v; u.lang = v.lang; u.rate = rate;
     u.onend = u.onerror = resolve;
-    speechSynthesis.cancel(); speechSynthesis.speak(u);
+    speechSynthesis.speak(u);
   });
 }
 function getVoicePref() { try { return localStorage.getItem("acento.voice") || ""; } catch { return ""; } }
@@ -410,7 +498,7 @@ function addCoach(turnEl, data, heard) {
     if (p.heard_as) top.append(el("span", "muted", `se oyó “${p.heard_as}”`));
     n.append(top, el("div", "", p.tip));
     const row = el("div", "row");
-    const hear = el("button", "link", "▶ Escuchar"); hear.onclick = () => speak(p.word, 0.7);
+    const hear = el("button", "link", "▶ Escuchar"); hear.onclick = () => speak(p.word, 0.7, "f");
     const out = el("span", "");
     const tryIt = el("button", "link", "🎙 Intentar otra vez");
     tryIt.onclick = async () => {
@@ -494,7 +582,7 @@ let listening = null;
 $("mic").onclick = async () => {
   if (listening) { listening.stop(); return; }
   if (state.busy || !SR) return;
-  showError(""); speechSynthesis.cancel();
+  showError(""); stopSpeaking();
   $("mic").classList.add("live"); $("mic").textContent = "■ Toca cuando termines";
   $("hint").textContent = "Escuchando… tómate tu tiempo, puedes hacer pausas.";
   listening = startListening({ onInterim: text => { $("hint").textContent = text || "Escuchando…"; } });
@@ -508,7 +596,7 @@ $("mic").onclick = async () => {
 };
 $("send").onclick = () => { const v = $("typed").value.trim(); if (!v || state.busy) return; $("typed").value = ""; turn(null, v); };
 $("typed").onkeydown = e => { if (e.key === "Enter") $("send").click(); };
-$("end").onclick = () => { speechSynthesis.cancel(); $("setup").hidden = false; $("chat").hidden = true; $("dock").hidden = true; };
+$("end").onclick = () => { stopSpeaking(); $("setup").hidden = false; $("chat").hidden = true; $("dock").hidden = true; };
 $("start").onclick = startConversation;
 
 async function fillVoices() {
@@ -518,11 +606,43 @@ async function fillVoices() {
   $("voice").replaceChildren(auto, ...vs.map(v => { const o = el("option", "", `${v.name} (${v.lang})`); o.value = v.voiceURI; return o; }));
   $("voice").value = getVoicePref();
 }
-function openSettings() { $("settings").hidden = false; $("apiKey").value = getKey(); $("model").value = getModel(); fillVoices(); $("apiKey").focus(); }
-$("testVoice").onclick = () => { const prev = getVoicePref(); setVoicePref($("voice").value); speak("Hola, ¿qué tal? Me encanta el perro de tu hermano.").finally(() => setVoicePref(prev)); };
-$("settingsBtn").onclick = openSettings;
+function fillElSelects() {
+  for (const [sel, g] of [["elFemale", "f"], ["elMale", "m"]]) {
+    const auto = el("option", "", elVoices.length ? "Automática (según el acento)" : "Primero carga tus voces"); auto.value = "";
+    const sorted = [...elVoices].sort((x, y) => (voiceGender(y) === g) - (voiceGender(x) === g) || isSpanish(y) - isSpanish(x));
+    $(sel).replaceChildren(auto, ...sorted.map(v => {
+      const extra = [v.labels?.accent, v.labels?.gender, ...(v.verified_languages || []).filter(l => /^es/i.test(l.language || "")).map(l => l.accent)].filter(Boolean).join(", ");
+      const o = el("option", "", extra ? `${v.name} (${extra})` : v.name); o.value = v.voice_id; return o;
+    }));
+    $(sel).value = pref(sel);
+  }
+  const es = elVoices.filter(isSpanish).length;
+  $("voiceStatus").textContent = elVoices.length ? `${elVoices.length} voces, ${es} en español` : "";
+}
+async function refreshElVoices() {
+  setPref("elKey", $("elKey").value.trim());
+  $("voiceStatus").textContent = "Cargando…";
+  try { await loadElVoices(); fillElSelects(); } catch (e) { $("voiceStatus").textContent = e.message; }
+}
+function openSettings() {
+  $("settings").hidden = false; $("apiKey").value = getKey(); $("model").value = getModel();
+  $("elKey").value = pref("elKey"); $("elModel").value = pref("elModel", "eleven_multilingual_v2");
+  fillVoices(); fillElSelects(); if (pref("elKey") && !elVoices.length) refreshElVoices();
+  $("apiKey").focus();
+}
+function saveSettings() {
+  setKey($("apiKey").value.trim()); setModel($("model").value); setVoicePref($("voice").value);
+  setPref("elKey", $("elKey").value.trim()); setPref("elFemale", $("elFemale").value); setPref("elMale", $("elMale").value); setPref("elModel", $("elModel").value);
+  audioCache.clear();
+}
+$("loadVoices").onclick = refreshElVoices;
+$("testVoice").onclick = async () => {
+  saveSettings(); showError("");
+  await speak("Hola, ¿qué tal? Soy Lucía. Hoy tenemos churros recién hechos.", 1, "f");
+  await speak("Y yo soy Ramón. ¿Adónde lo llevo?", 1, "m");
+};
 $("closeSettings").onclick = () => { $("settings").hidden = true; };
-$("saveKey").onclick = () => { setKey($("apiKey").value.trim()); setModel($("model").value); setVoicePref($("voice").value); makeClient(); $("settings").hidden = true; };
+$("saveKey").onclick = () => { saveSettings(); makeClient(); $("settings").hidden = true; };
 
 $("scenes").replaceChildren(...SCENES.map(s => {
   const b = el("button", "scene"); b.setAttribute("aria-pressed", s === state.scene);
