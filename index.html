@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Acento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: one practice card in the center, sound-group picker on top, results under the phrase */
+:root {
+  --bg: #f3f6f7; --surface: #ffffff; --fg: #15232b; --muted: #5b6e78;
+  --accent: #0e6e7a; --accent-fg: #ffffff; --line: #d6e0e4;
+  --good: #1f8a4c; --warn: #b86e00; --bad: #c0392b;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0f171b; --surface: #17232a; --fg: #e4eef1; --muted: #93a8b1;
+    --accent: #3fb5c2; --accent-fg: #0f171b; --line: #2a3b43;
+    --good: #4cc27f; --warn: #e6a23c; --bad: #ef6b5e; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.5 var(--body); }
+main { max-width: 760px; margin: 0 auto; padding: 32px max(16px, env(safe-area-inset-left)) 64px; display: grid; gap: 24px; }
+h1 { font: 700 2.2rem/1.1 var(--display); margin: 0; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 6px 14px; font: 600 0.9rem var(--body); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: grid; gap: 16px; }
+.label { font: 600 0.75rem var(--body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.phrase { font: 500 2rem/1.25 var(--display); text-wrap: balance; margin: 0; }
+.phrase .focus { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
+.tip { color: var(--muted); margin: 0; max-width: 62ch; }
+.ipa { font-family: var(--mono); font-size: 0.95rem; color: var(--muted); }
+button.main { border: 0; border-radius: 10px; padding: 12px 18px; font: 600 1rem var(--body); cursor: pointer; background: var(--accent); color: var(--accent-fg); }
+button.alt { border: 1px solid var(--line); border-radius: 10px; padding: 11px 16px; font: 600 1rem var(--body); cursor: pointer; background: transparent; color: var(--fg); }
+button:focus-visible, .chip:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: 0.5; cursor: default; }
+button.rec { background: var(--bad); color: #fff; }
+.result { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; }
+.words { display: flex; flex-wrap: wrap; gap: 6px; font: 500 1.3rem var(--display); }
+.w { padding: 2px 8px; border-radius: 6px; border-bottom: 3px solid; }
+.w.ok { border-color: var(--good); }
+.w.close { border-color: var(--warn); }
+.w.miss { border-color: var(--bad); }
+.score { font: 700 2.4rem var(--display); font-variant-numeric: tabular-nums; }
+.heard { font-family: var(--mono); font-size: 0.95rem; color: var(--muted); }
+.note { font-size: 0.9rem; color: var(--muted); }
+select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.warn-box { border: 1px solid var(--warn); border-radius: 10px; padding: 12px 16px; }
+@media (prefers-reduced-motion: no-preference) { .pulse { animation: pulse 1s infinite; } }
+@keyframes pulse { 50% { opacity: 0.6; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Acento</h1>
+    <p>Hear a native model, say it yourself, and see which words came through clearly.</p>
+  </header>
+
+  <div id="unsupported" class="warn-box" hidden>
+    Speech recognition isn't available in this browser. Open this page in Chrome or Edge on <code>localhost</code> or HTTPS. You can still listen to the model audio and record yourself.
+  </div>
+
+  <div class="row" style="justify-content: space-between">
+    <div class="row" id="groups" role="group" aria-label="Sound to practice"></div>
+    <label class="row"><span class="label">Accent</span>
+      <select id="dialect">
+        <option value="es-MX">Latin America (es-MX)</option>
+        <option value="es-ES">Spain (es-ES)</option>
+        <option value="es-US">US Spanish (es-US)</option>
+      </select>
+    </label>
+  </div>
+
+  <section class="card" aria-live="polite">
+    <div class="row" style="justify-content: space-between">
+      <span class="label" id="groupName"></span>
+      <span class="label" id="counter"></span>
+    </div>
+    <p class="phrase" id="phrase"></p>
+    <span class="ipa" id="ipa"></span>
+    <p class="tip" id="tip"></p>
+    <div class="row">
+      <button class="alt" id="listen">▶ Listen</button>
+      <button class="alt" id="listenSlow">▶ Slow</button>
+      <button class="main" id="record">● Record</button>
+      <button class="alt" id="playback" disabled>Hear yourself</button>
+      <button class="alt" id="next">Next phrase →</button>
+    </div>
+    <div class="result" id="result" hidden>
+      <div class="row" style="gap: 16px; align-items: baseline">
+        <span class="score" id="score"></span>
+        <span class="note" id="verdict"></span>
+      </div>
+      <div class="words" id="words"></div>
+      <div><span class="label">What the recognizer heard</span><div class="heard" id="heard"></div></div>
+    </div>
+  </section>
+
+  <p class="note">The score measures how intelligible each word was to a Spanish speech recognizer. Green means it heard the word, amber means close, red means it heard something else. Compare your recording with the model to catch the finer accent details.</p>
+</main>
+
+<script>
+const LESSONS = {
+  "Vowels": {
+    tip: "Spanish has five short, pure vowels. Don't glide: 'o' never becomes 'ow', 'e' never becomes 'ay'. Keep every unstressed vowel full, never 'uh'.",
+    items: [
+      { text: "Pepe come pera", focus: ["Pepe", "pera"], ipa: "/ˈpe.pe ˈko.me ˈpe.ɾa/" },
+      { text: "Todo lo que tengo es tuyo", focus: ["Todo", "lo"], ipa: "/ˈto.ðo lo ke ˈteŋ.ɡo es ˈtu.ʝo/" },
+      { text: "La casa es amarilla", focus: ["casa", "amarilla"], ipa: "/la ˈka.sa es a.maˈɾi.ʝa/" },
+    ],
+  },
+  "R / RR": {
+    tip: "Single r between vowels is one quick tap, like the 'tt' in American 'butter'. Initial r and rr are a trill: let the tongue tip flutter against the ridge behind your teeth.",
+    items: [
+      { text: "El perro corre rápido", focus: ["perro", "corre", "rápido"], ipa: "/el ˈpe.ro ˈko.re ˈra.pi.ðo/" },
+      { text: "Pero no es caro", focus: ["Pero", "caro"], ipa: "/ˈpe.ɾo no es ˈka.ɾo/" },
+      { text: "Erre con erre cigarro", focus: ["Erre", "erre", "cigarro"], ipa: "/ˈe.re kon ˈe.re siˈɣa.ro/" },
+    ],
+  },
+  "Soft D, B, G": {
+    tip: "Between vowels, d, b and g soften. 'd' sounds close to the 'th' in 'this', and b/g barely close. At the start of a phrase they stay hard.",
+    items: [
+      { text: "Nada de nada", focus: ["Nada", "nada"], ipa: "/ˈna.ða ðe ˈna.ða/" },
+      { text: "Lo bebo todo", focus: ["bebo", "todo"], ipa: "/lo ˈβe.βo ˈto.ðo/" },
+      { text: "El lago es amargo", focus: ["lago", "amargo"], ipa: "/el ˈla.ɣo es aˈmaɾ.ɣo/" },
+    ],
+  },
+  "P, T, K": {
+    tip: "No puff of air. Hold your hand in front of your mouth: on 'papá' you should feel almost nothing. 't' touches the back of the teeth, not the gum ridge.",
+    items: [
+      { text: "Papá toma café", focus: ["Papá", "toma", "café"], ipa: "/paˈpa ˈto.ma kaˈfe/" },
+      { text: "Tengo tanto tiempo", focus: ["Tengo", "tanto", "tiempo"], ipa: "/ˈteŋ.ɡo ˈtan̪.to ˈtjem.po/" },
+    ],
+  },
+  "J, Ñ, LL": {
+    tip: "'j' (and g before e/i) is a breathy sound from the back of the throat. 'ñ' is like 'ny' in 'canyon'. 'll' and 'y' sound like the 'y' in 'yes' in most regions.",
+    items: [
+      { text: "Mi hijo juega en el jardín", focus: ["hijo", "juega", "jardín"], ipa: "/mi ˈi.xo ˈxwe.ɣa en el xaɾˈðin/" },
+      { text: "El niño tiene sueño", focus: ["niño", "sueño"], ipa: "/el ˈni.ɲo ˈtje.ne ˈswe.ɲo/" },
+      { text: "Ella llega mañana", focus: ["Ella", "llega", "mañana"], ipa: "/ˈe.ʝa ˈʝe.ɣa maˈɲa.na/" },
+    ],
+  },
+};
+
+const $ = id => document.getElementById(id);
+const state = { group: Object.keys(LESSONS)[0], index: 0, audioUrl: null };
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) $("unsupported").hidden = false;
+
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zñ ]/g, "").trim();
+
+function lev(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+
+// Align each target word to its best match in the heard words, in order.
+function scoreWords(target, heard) {
+  const h = norm(heard).split(/\s+/).filter(Boolean);
+  let cursor = 0;
+  return target.split(/\s+/).map(word => {
+    const t = norm(word);
+    let best = { sim: 0, at: cursor };
+    for (let k = cursor; k < Math.min(h.length, cursor + 3); k++) {
+      const sim = 1 - lev(t, h[k]) / Math.max(t.length, h[k].length);
+      if (sim > best.sim) best = { sim, at: k };
+    }
+    if (best.sim >= 0.5) cursor = best.at + 1;
+    return { word, sim: best.sim, cls: best.sim === 1 ? "ok" : best.sim >= 0.6 ? "close" : "miss" };
+  });
+}
+
+function current() { return LESSONS[state.group].items[state.index]; }
+
+function render() {
+  $("groups").replaceChildren(...Object.keys(LESSONS).map(name => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = name;
+    b.setAttribute("aria-pressed", name === state.group);
+    b.onclick = () => { state.group = name; state.index = 0; render(); };
+    return b;
+  }));
+  const item = current(), lesson = LESSONS[state.group];
+  $("groupName").textContent = state.group;
+  $("counter").textContent = `${state.index + 1} / ${lesson.items.length}`;
+  $("phrase").replaceChildren(...item.text.split(" ").flatMap((w, i) => {
+    const span = document.createElement("span");
+    span.textContent = w;
+    if (item.focus.includes(w)) span.className = "focus";
+    return i ? [" ", span] : [span];
+  }));
+  $("ipa").textContent = item.ipa;
+  $("tip").textContent = lesson.tip;
+  $("result").hidden = true;
+  $("playback").disabled = true;
+}
+
+function speak(rate) {
+  const u = new SpeechSynthesisUtterance(current().text);
+  const lang = $("dialect").value;
+  u.lang = lang; u.rate = rate;
+  const voice = speechSynthesis.getVoices().find(v => v.lang.replace("_", "-") === lang)
+    || speechSynthesis.getVoices().find(v => v.lang.startsWith("es"));
+  if (voice) u.voice = voice;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+$("listen").onclick = () => speak(0.95);
+$("listenSlow").onclick = () => speak(0.6);
+$("next").onclick = () => { state.index = (state.index + 1) % LESSONS[state.group].items.length; render(); };
+
+let recording = false;
+$("record").onclick = async () => {
+  if (recording) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch { $("unsupported").hidden = false; $("unsupported").textContent = "Microphone access was blocked. Allow the microphone for this page in your browser's site settings, then try again."; return; }
+
+  recording = true;
+  const btn = $("record");
+  btn.textContent = "● Listening…"; btn.classList.add("rec", "pulse");
+
+  const chunks = [];
+  const mr = new MediaRecorder(stream);
+  mr.ondataavailable = e => chunks.push(e.data);
+  mr.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
+    state.audioUrl = URL.createObjectURL(new Blob(chunks, { type: mr.mimeType }));
+    $("playback").disabled = false;
+  };
+  mr.start();
+
+  const finish = transcripts => {
+    recording = false;
+    btn.textContent = "● Record"; btn.classList.remove("rec", "pulse");
+    if (mr.state !== "inactive") mr.stop();
+    if (transcripts) showResult(transcripts);
+  };
+
+  if (!SR) { setTimeout(() => finish(null), 4000); return; }
+  const rec = new SR();
+  rec.lang = $("dialect").value; rec.maxAlternatives = 5; rec.interimResults = false;
+  let got = null;
+  rec.onresult = e => { got = Array.from(e.results[0]).map(a => a.transcript); };
+  rec.onerror = () => {};
+  rec.onend = () => finish(got || [""]);
+  rec.start();
+};
+
+function showResult(alternatives) {
+  const target = current().text;
+  // Use the alternative that best matches the target, so one odd guess doesn't sink the score.
+  const scored = alternatives.map(alt => ({ alt, words: scoreWords(target, alt) }))
+    .map(r => ({ ...r, total: r.words.reduce((s, w) => s + w.sim, 0) / r.words.length }))
+    .sort((a, b) => b.total - a.total)[0];
+  const pct = Math.round(scored.total * 100);
+  $("score").textContent = pct + "%";
+  $("score").style.color = pct >= 90 ? "var(--good)" : pct >= 65 ? "var(--warn)" : "var(--bad)";
+  $("verdict").textContent = pct >= 90 ? "Clear. Now match the rhythm of the model." :
+    pct >= 65 ? "Mostly clear. Replay the model and focus on the amber and red words." :
+    scored.alt ? "Hard to understand. Try the slow model, then go word by word." : "Nothing was heard. Check your microphone and speak a little louder.";
+  $("words").replaceChildren(...scored.words.map(w => {
+    const s = document.createElement("span"); s.className = "w " + w.cls; s.textContent = w.word; return s;
+  }));
+  $("heard").textContent = scored.alt || "—";
+  $("result").hidden = false;
+}
+
+$("playback").onclick = () => { if (state.audioUrl) new Audio(state.audioUrl).play(); };
+speechSynthesis.onvoiceschanged = () => {};
+render();
+</script>
+</body>
+</html>
