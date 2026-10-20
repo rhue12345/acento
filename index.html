@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -81,49 +81,52 @@ input, select, textarea { font: inherit; color: var(--fg); background: var(--sur
   <header>
     <h1>Acento</h1>
     <div class="dock-row">
-      <a class="link" href="drills.html">Sound drills</a>
-      <button class="ghost" id="settingsBtn">Settings</button>
+      <a class="link" href="drills.html">Ejercicios de sonidos</a>
+      <button class="ghost" id="settingsBtn">Ajustes</button>
     </div>
   </header>
 
   <!-- Settings: API key -->
   <section class="panel" id="settings" hidden>
-    <h2>Connect to Claude</h2>
-    <p class="muted" style="margin:0">The coach needs an Anthropic API key. Create one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It stays in this browser only and is sent straight to Anthropic. Usage is billed to your Anthropic account.</p>
-    <label for="apiKey" class="label">API key</label>
+    <h2>Conectar con Claude</h2>
+    <p class="muted" style="margin:0">El entrenador necesita una clave de API de Anthropic. Créala en <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. Se guarda solo en este navegador y se envía directamente a Anthropic. El uso se cobra en tu cuenta de Anthropic.</p>
+    <label for="apiKey" class="label">Clave de API</label>
     <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
-    <label for="model" class="label">Coach model</label>
+    <label for="model" class="label">Modelo del entrenador</label>
     <select id="model">
-      <option value="claude-haiku-5-5">Everyday (Claude Haiku 5.5): well under a cent per conversation</option>
-      <option value="claude-opus-5-5">Best feedback (Claude Opus 5.5): about 1–3¢ per turn</option>
+      <option value="claude-opus-5-5">Mejor (Claude Opus 5.5): unos 1–3 centavos por turno</option>
+      <option value="claude-haiku-5-5">Económico (Claude Haiku 5.5): menos de 1 centavo por conversación, respuestas más flojas</option>
     </select>
-    <div class="dock-row"><button class="primary" id="saveKey">Save</button><button class="ghost" id="closeSettings">Close</button></div>
+    <label for="voice" class="label">Voz en español</label>
+    <div class="dock-row"><select id="voice"></select><button class="ghost" id="testVoice">▶ Probar</button></div>
+    <p class="muted" style="margin:0;font-size:0.9rem">Las voces “Google”, “Natural” u “Online” suelen sonar mejor. Si no aparece ninguna, tu dispositivo no tiene voces en español instaladas.</p>
+    <div class="dock-row"><button class="primary" id="saveKey">Guardar</button><button class="ghost" id="closeSettings">Cerrar</button></div>
   </section>
 
   <!-- Setup -->
   <section id="setup" class="panel">
-    <h2>Choose a scene</h2>
+    <h2>Elige una escena</h2>
     <div class="scenes" id="scenes"></div>
     <div class="grid2">
-      <label class="label">Your level
+      <label class="label">Tu nivel
         <select id="level">
-          <option value="beginner">Beginner: short, slow sentences</option>
-          <option value="intermediate" selected>Intermediate</option>
-          <option value="advanced">Advanced: natural speed and slang</option>
+          <option value="beginner">Principiante: frases cortas y lentas</option>
+          <option value="intermediate" selected>Intermedio</option>
+          <option value="advanced">Avanzado: velocidad natural y jerga</option>
         </select>
       </label>
-      <label class="label">Accent
+      <label class="label">Acento
         <select id="dialect">
-          <option value="es-MX">Mexico (es-MX)</option>
-          <option value="es-ES">Spain (es-ES)</option>
-          <option value="es-US">US Spanish (es-US)</option>
+          <option value="es-MX">México (es-MX)</option>
+          <option value="es-ES">España (es-ES)</option>
+          <option value="es-US">Estados Unidos (es-US)</option>
           <option value="es-AR">Argentina (es-AR)</option>
           <option value="es-CO">Colombia (es-CO)</option>
         </select>
       </label>
     </div>
-    <div class="dock-row"><button class="primary" id="start">Start conversation</button></div>
-    <p class="muted" style="margin:0;font-size:0.9rem">Use Chrome or Edge for voice. You talk, your partner answers out loud, and the coach notes the words that didn't come through clearly.</p>
+    <div class="dock-row"><button class="primary" id="start">Empezar conversación</button></div>
+    <p class="muted" style="margin:0;font-size:0.9rem">Usa Chrome o Edge para la voz. Tú hablas, tu compañero te responde en voz alta y el entrenador te señala las palabras que no se entendieron bien.</p>
   </section>
 
   <div id="chat" hidden></div>
@@ -131,12 +134,12 @@ input, select, textarea { font: inherit; color: var(--fg); background: var(--sur
   <div class="dock" id="dock" hidden>
     <div id="error" class="err" hidden></div>
     <div class="dock-row">
-      <button class="mic" id="mic">🎙 Tap to speak</button>
-      <button class="ghost" id="end" title="Choose another scene">End</button>
+      <button class="mic" id="mic">🎙 Toca para hablar</button>
+      <button class="ghost" id="end" title="Elegir otra escena">Terminar</button>
     </div>
     <div class="typed" id="typedRow" hidden>
-      <input id="typed" placeholder="Type in Spanish instead…" autocomplete="off">
-      <button class="ghost" id="send">Send</button>
+      <input id="typed" placeholder="O escribe en español…" autocomplete="off">
+      <button class="ghost" id="send">Enviar</button>
     </div>
     <div class="hint" id="hint"></div>
   </div>
@@ -146,12 +149,12 @@ input, select, textarea { font: inherit; color: var(--fg); background: var(--sur
 import Anthropic from "./vendor/anthropic-sdk.mjs";
 
 const SCENES = [
-  { id: "cafe", title: "Café in Madrid", blurb: "Order breakfast from a chatty waiter.", role: "a friendly, slightly chatty waiter at a busy café in Madrid", opener: "the waiter greets the customer and asks what they'd like" },
-  { id: "taxi", title: "Taxi ride", blurb: "Tell the driver where to go and make small talk.", role: "a talkative taxi driver who loves recommending local food", opener: "the driver asks where the passenger is headed" },
-  { id: "market", title: "Market stall", blurb: "Buy fruit, ask prices, haggle a little.", role: "a fruit vendor at a lively outdoor market", opener: "the vendor calls out the day's best fruit and asks what the customer needs" },
-  { id: "directions", title: "Lost in the city", blurb: "Ask a stranger for directions.", role: "a helpful local on the street", opener: "the local notices the learner looks lost and offers help" },
-  { id: "friend", title: "New friend", blurb: "Get to know someone at a party.", role: "a friendly person at a house party who wants to get to know the learner", opener: "they introduce themselves and ask the learner's name" },
-  { id: "doctor", title: "At the pharmacy", blurb: "Explain a headache and ask for medicine.", role: "a calm pharmacist", opener: "the pharmacist asks how they can help" },
+  { id: "cafe", title: "Cafetería", blurb: "Pide el desayuno a una camarera habladora.", role: "Lucía, a quick-witted waiter in her 30s at a busy neighborhood café. She knows the regulars, has opinions about the pastries, and is a little rushed at the morning peak. The menu: café con leche, cortado, tostada con tomate, croissant, churros, zumo de naranja, tortilla", opener: "Lucía comes to the table and greets the customer" },
+  { id: "taxi", title: "En el taxi", blurb: "Dile al taxista adónde vas y charla un rato.", role: "Don Ramón, a talkative taxi driver in his 60s who has driven the city for 30 years, loves football and his grandkids, and always has a restaurant recommendation", opener: "the passenger gets in and Ramón greets them" },
+  { id: "market", title: "En el mercado", blurb: "Compra fruta, pregunta precios y regatea un poco.", role: "Marisol, a fruit vendor at an outdoor market who is proud of her mangos and will give a small discount if you're friendly or buy a lot. Prices are per kilo; make them realistic for the region", opener: "Marisol calls out to the customer passing her stall" },
+  { id: "directions", title: "Perdido en la ciudad", blurb: "Pregunta a alguien cómo llegar.", role: "Andrés, a university student walking to class who is happy to help but a bit hurried. He knows the area well: the metro, the main square, the museum, a good cheap restaurant", opener: "Andrés notices the learner looking at their phone, confused, and asks if they need help" },
+  { id: "friend", title: "Nueva amistad", blurb: "Conoce a alguien en una fiesta.", role: "Vale, a friendly graphic designer at a friend's house party. She likes music, travel and cooking, and is curious about where the learner is from and why they're learning Spanish", opener: "Vale introduces herself at the snack table" },
+  { id: "doctor", title: "En la farmacia", blurb: "Explica que te duele la cabeza y pide algo.", role: "Carmen, a calm, careful pharmacist who asks about symptoms, allergies and how long it's been going on before recommending something over the counter", opener: "Carmen greets the customer at the counter" },
 ];
 
 const SCHEMA = {
@@ -171,13 +174,13 @@ const SCHEMA = {
         properties: {
           word: { type: "string", description: "The word they meant to say." },
           heard_as: { type: "string", description: "What the recognizer heard instead." },
-          sound: { type: "string", description: "Short name of the sound, e.g. 'rr trill', 'pure o vowel', 'soft d'." },
-          tip: { type: "string", description: "One concrete, physical tip in English, max 25 words." },
+          sound: { type: "string", description: "Short Spanish name of the sound, e.g. 'la rr', 'la o pura', 'la d suave'." },
+          tip: { type: "string", description: "One concrete, physical tip in simple Spanish, max 25 words." },
         },
       },
     },
-    grammar: { type: "string", description: "One short, gentle grammar or word-choice correction in English, or empty string." },
-    praise: { type: "string", description: "Brief English note on something they said well, or empty string." },
+    grammar: { type: "string", description: "One short, gentle grammar or word-choice correction in simple Spanish, or empty string." },
+    praise: { type: "string", description: "Brief note in simple Spanish on something they said well, or empty string." },
   },
 };
 
@@ -187,39 +190,84 @@ const state = { scene: SCENES[0], messages: [], busy: false };
 let client = null;
 
 function getKey() { try { return localStorage.getItem("acento.key") || ""; } catch { return ""; } }
-function getModel() { try { return localStorage.getItem("acento.model") || "claude-haiku-5-5"; } catch { return "claude-haiku-5-5"; } }
-function setModel(m) { try { localStorage.setItem("acento.model", m); } catch {} }
+const DEFAULT_MODEL = "claude-opus-5-5";
+function getModel() { try { return localStorage.getItem("acento.coachModel") || DEFAULT_MODEL; } catch { return DEFAULT_MODEL; } }
+function setModel(m) { try { localStorage.setItem("acento.coachModel", m); } catch {} }
 function setKey(k) { try { localStorage.setItem("acento.key", k); } catch {} }
 function makeClient() {
   const key = getKey();
   client = key ? new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true }) : null;
 }
 
+const CITY = { "es-MX": "Mexico City", "es-ES": "Madrid", "es-US": "Miami", "es-AR": "Buenos Aires", "es-CO": "Bogotá" };
+
 function systemPrompt() {
   const level = $("level").value, dialect = $("dialect").value;
-  return `You are a Spanish conversation partner and accent coach for an English-speaking learner.
+  const levelGuide = {
+    beginner: "The learner is a beginner. Speak in short, clear sentences (under ~10 words each), mostly present tense, everyday words. If they seem lost, rephrase more simply, never switch to English.",
+    intermediate: "The learner is intermediate. Use natural everyday Spanish at a normal pace, 1-3 sentences per turn, with the odd common idiom.",
+    advanced: "The learner is advanced. Talk exactly as a native would: natural speed, regional slang and expressions, longer turns when it fits.",
+  }[level];
+  return `You play a character in a spoken Spanish conversation with an English-speaking learner, and you also coach their pronunciation.
 
-Scene: you are ${state.scene.role}. Stay in character and keep the conversation moving with a question or prompt at the end of each reply.
-Learner level: ${level}. ${level === "beginner" ? "Use short, simple sentences (max ~12 words each), present tense, common words." : level === "intermediate" ? "Use natural everyday Spanish, 1-3 sentences." : "Speak naturally, with regional expressions where they fit."}
-Regional variety: ${dialect}. Use vocabulary and forms from that region (e.g. vosotros in Spain, voseo in Argentina).
+# The character
+You are ${state.scene.role}. The scene takes place in ${CITY[dialect]}; use the vocabulary, forms and expressions people really use there (${dialect}).
+${levelGuide}
 
-Each learner turn gives you what a Spanish speech recognizer heard, as several guesses with confidence scores. The recognizer is the only evidence you have of their pronunciation. Use it like this:
-- Work out what they most likely meant from context.
-- Words where the recognizer heard something different from what they meant, or low confidence, point to pronunciation problems. Reason about which sound caused it: e.g. "perro" heard as "pero" = weak rr trill; "pelo" heard as "pero" = r/l; "casa" heard as "caza" is fine in Latin America; an English-style vowel can turn "lo" into "low"/"la".
-- Only flag problems the evidence supports. Never invent errors. If they were understood perfectly, leave pronunciation empty and say what went well in praise.
-- Focus on sounds English speakers struggle with: r tap vs rr trill, pure vowels, soft d/b/g between vowels, unaspirated p/t/k, j, ñ, ll/y, stress on the wrong syllable.
-- If the learner typed instead of speaking, leave pronunciation empty.
+Be a real person, not a teacher or a chatbot:
+- React to the specifics of what they said. Have opinions, make small jokes, mention concrete details from your life and the setting.
+- Don't end every turn with a question. Mix in comments, reactions and suggestions; ask a question when a real person would.
+- Move the scene forward naturally (order gets taken, food arrives, prices get agreed) instead of looping.
+- Never repeat a phrase or question you already used.
+- Your lines are spoken aloud by text-to-speech: no emoji, no stage directions, no lists, no parentheses.
+- If they make a mistake, you may naturally echo the correct form in your reply the way a native speaker would ("¿Un café con leche? Claro."), but don't lecture in character.
+- If they speak English or say they don't understand, help in simpler Spanish and keep going.
 
-Reply to what they meant, not to recognizer mistakes. Keep corrections short and kind; the conversation is the point.`;
+# Input you receive
+Each learner turn is what a Spanish speech recognizer transcribed, sometimes with a few alternative guesses. Respond to what they most likely meant in context, not to recognizer glitches.
+
+# Pronunciation coaching
+The recognizer transcript is your only evidence of how they sounded, and recognizers make lots of mistakes that have nothing to do with the speaker. Be strict about what counts as evidence:
+- Flag a word ONLY when the recognizer's best guess contains a different real word where the intended word should be, AND that substitution is explained by a classic English-speaker error. Examples: "perro" → "pero" (rr not trilled), "pelo" → "pero" (r/l), "cómo" → "como" is NOT evidence (only an accent mark), "caro" → "carro" (over-trilled tap), "todo" → "toro" (d too hard/flapped), a word stressed on the wrong syllable becoming a different word.
+- These are NEVER errors: missing or extra accent marks, punctuation, capitalization, numbers as digits, words that sound identical (hola/ola, vaca/baca, haya/halla, casa/caza in Latin America, b vs v, ll vs y, silent h), a word missing at the very start or end (recognizer clipping), or differences that only appear in the alternative guesses.
+- If you're not sure, don't flag it. Zero flags is the normal, expected result for a clear turn. Never more than 2.
+- heard_as must be copied exactly from the recognizer's best guess.
+- If the learner typed instead of speaking, never flag pronunciation.
+
+Grammar: only correct a real grammar or word-choice error the learner made, as visible in the best guess, and only the single most useful one. Ignore anything that could be a recognizer artifact. Empty string if nothing is worth correcting.
+
+Praise: a short specific note when they did something well (a hard sound, a natural phrase), otherwise empty string. Don't praise every turn.
+
+The whole app is in Spanish: write tips, grammar notes and praise in simple, clear Spanish suited to the learner's level (short sentences, common words, an example in quotes). Only reply_english is in English.`;
 }
 
-function learnerTurn(alts, typed) {
+function learnerTurn(heard, typed) {
   if (typed) return `The learner typed (no audio): "${typed}"`;
-  const lines = alts.map((a, i) => `${i + 1}. "${a.transcript}"${a.confidence ? ` (confidence ${a.confidence.toFixed(2)})` : ""}`);
-  return `Speech recognizer guesses for the learner's last turn, best first:\n${lines.join("\n")}`;
+  const others = heard.alternatives.filter(a => a && a !== heard.best).slice(0, 3);
+  return `Recognizer best guess: "${heard.best}"` + (others.length ? `\nOther guesses (weak evidence): ${others.map(a => `"${a}"`).join(", ")}` : "");
 }
 
-async function askClaude() {
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zñ ]/g, " ").replace(/\s+/g, " ").trim();
+
+// Drop flags the transcript doesn't support: heard_as must actually be in the best guess,
+// the intended word must be missing from it, and the two must differ by more than accents.
+function verifiedFlags(flags, heard) {
+  if (!heard) return [];
+  const best = ` ${norm(heard.best)} `;
+  return flags.filter(p => {
+    const w = norm(p.word), h = norm(p.heard_as);
+    return w && h && w !== h && best.includes(` ${h} `) && !best.includes(` ${w} `);
+  }).slice(0, 2);
+}
+
+// Pulls the finished "reply" string out of a partial JSON stream, so speech can start early.
+function replyFromPartial(snapshot) {
+  const m = snapshot.match(/"reply"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (!m) return null;
+  try { return JSON.parse(`"${m[1]}"`); } catch { return null; }
+}
+
+async function askClaude(onReply) {
   const params = {
     model: getModel(),
     max_tokens: 16000,
@@ -229,59 +277,121 @@ async function askClaude() {
     messages: state.messages,
   };
   // Opus can hand a declined request to a fallback model server-side; Haiku has no fallback.
-  const response = params.model === "claude-opus-5-5"
-    ? await client.beta.messages.create({ ...params, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" })
-    : await client.messages.create(params);
-  if (response.stop_reason === "refusal") throw new Error("The coach declined to answer that. Try saying something else.");
+  const stream = params.model === "claude-opus-5-5"
+    ? client.beta.messages.stream({ ...params, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" })
+    : client.messages.stream(params);
+  let sent = false;
+  stream.on("text", (_delta, snapshot) => {
+    if (sent) return;
+    const reply = replyFromPartial(snapshot);
+    if (reply) { sent = true; onReply(reply); }
+  });
+  const response = await stream.finalMessage();
+  if (response.stop_reason === "refusal") throw new Error("El entrenador no pudo responder a eso. Prueba a decir otra cosa.");
   // Keep the full content (thinking blocks included) so later turns stay valid.
   state.messages.push({ role: "assistant", content: response.content });
   const text = response.content.filter(b => b.type === "text").map(b => b.text).join("");
-  return JSON.parse(text);
+  const data = JSON.parse(text);
+  if (!sent) onReply(data.reply);
+  return data;
 }
 
 // ---------- speech ----------
+// Browsers load voices asynchronously; wait for them before choosing.
+const voicesReady = new Promise(resolve => {
+  const have = () => speechSynthesis.getVoices().length > 0;
+  if (have()) return resolve();
+  speechSynthesis.addEventListener("voiceschanged", () => resolve(), { once: true });
+  setTimeout(resolve, 2000);
+});
+function spanishVoices() { return speechSynthesis.getVoices().filter(v => /^es([-_]|$)/i.test(v.lang)); }
+// Prefer the chosen voice, then natural/online voices for the exact region, then any Spanish voice. Never an English one.
 function voiceFor(lang) {
-  const vs = speechSynthesis.getVoices();
-  return vs.find(v => v.lang.replace("_", "-") === lang) || vs.find(v => v.lang.startsWith("es"));
+  const vs = spanishVoices();
+  const chosen = vs.find(v => v.voiceURI === getVoicePref());
+  if (chosen) return chosen;
+  const quality = v => (/(natural|neural|premium|enhanced|online|google)/i.test(v.name) ? 2 : 0) + (v.localService ? 0 : 1);
+  const region = lang.split("-")[1];
+  const score = v => (v.lang.replace("_", "-") === lang ? 10 : region === "US" && /MX|419/.test(v.lang) ? 6 : region !== "ES" && !/ES$/i.test(v.lang) ? 4 : 2) + quality(v);
+  return vs.sort((a, b) => score(b) - score(a))[0] || null;
 }
-function speak(text, rate = 1) {
+async function speak(text, rate = 1) {
+  await voicesReady;
+  const v = voiceFor($("dialect").value);
+  if (!v) { showError("Este navegador no tiene ninguna voz en español, así que no puede leer las respuestas en voz alta correctamente. Lee el texto o instala una voz en español en los ajustes de texto a voz de tu dispositivo."); return; }
   return new Promise(resolve => {
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = $("dialect").value; u.rate = rate;
-    const v = voiceFor(u.lang); if (v) u.voice = v;
+    u.voice = v; u.lang = v.lang; u.rate = rate;
     u.onend = u.onerror = resolve;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   });
 }
-function listen() {
-  return new Promise((resolve, reject) => {
-    const rec = new SR();
-    rec.lang = $("dialect").value; rec.maxAlternatives = 5; rec.interimResults = false;
-    let alts = null;
-    rec.onresult = e => { alts = Array.from(e.results[0]).map(a => ({ transcript: a.transcript, confidence: a.confidence })); };
-    rec.onerror = e => { if (e.error === "not-allowed") reject(new Error("Microphone access is blocked. Allow the microphone for this site in your browser settings.")); };
-    rec.onend = () => resolve(alts);
-    rec.start();
-  });
+function getVoicePref() { try { return localStorage.getItem("acento.voice") || ""; } catch { return ""; } }
+function setVoicePref(v) { try { localStorage.setItem("acento.voice", v); } catch {} }
+
+// Keeps listening through pauses. Ends when stop() is called, after `silenceMs` of quiet once you've spoken,
+// or after `maxWaitMs` if you never start. Some phones end recognition on their own after a pause, so it
+// quietly restarts and keeps what was already heard.
+function startListening({ onInterim, silenceMs = 2500, maxWaitMs = 10000 } = {}) {
+  let segments = [], interim = "", timer = null, error = null, stopping = false, rec = null, heardAny = false;
+  const started = Date.now();
+  const text = () => [...segments.map(f => f[0]), interim].join(" ").replace(/\s+/g, " ").trim();
+  let finish;
+  const done = new Promise(resolve => { finish = resolve; });
+  const arm = ms => { clearTimeout(timer); timer = setTimeout(stop, ms); };
+  function stop() { stopping = true; clearTimeout(timer); rec?.stop(); }
+  function begin() {
+    rec = new SR();
+    rec.lang = $("dialect").value; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 4;
+    let base = segments.length;
+    rec.onresult = e => {
+      segments.length = base; interim = "";
+      for (const r of e.results) {
+        if (r.isFinal) segments.push(Array.from(r).map(a => a.transcript.trim()));
+        else interim += r[0].transcript;
+      }
+      if (text()) { heardAny = true; arm(silenceMs); }
+      onInterim?.(text());
+    };
+    rec.onerror = e => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") { error = new Error("El micrófono está bloqueado. Permite el micrófono para este sitio en los ajustes del navegador."); stopping = true; }
+    };
+    rec.onend = () => {
+      if (interim.trim()) { segments.push([interim.trim()]); interim = ""; }
+      if (!stopping && Date.now() - started < 120000) { begin(); return; }
+      clearTimeout(timer);
+      if (error) return finish({ error });
+      if (!segments.length) return finish(null);
+      const best = segments.map(f => f[0]).join(" ").replace(/\s+/g, " ").trim();
+      // Alternatives: swap one segment at a time for its runner-up guess.
+      const alternatives = [];
+      segments.forEach((f, i) => f.slice(1).forEach(alt => alternatives.push(segments.map((g, j) => j === i ? alt : g[0]).join(" "))));
+      finish({ best, alternatives });
+    };
+    try { rec.start(); } catch { stopping = true; finish(segments.length ? { best: text(), alternatives: [] } : null); }
+  }
+  begin();
+  arm(maxWaitMs);
+  return { stop, done };
 }
 
 // ---------- rendering ----------
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 function scrollDown() { window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); }
 
-function addAI(data) {
+function addAI(reply) {
   const t = el("div", "turn ai");
   const b = el("div", "bubble");
-  b.append(el("div", "es", data.reply));
-  const en = el("div", "en", data.reply_english); en.hidden = true; b.append(en);
+  b.append(el("div", "es", reply));
+  const en = el("div", "en"); en.hidden = true; b.append(en);
   const actions = el("div", "turn-actions");
-  const replay = el("button", "link", "▶ Replay"); replay.onclick = () => speak(data.reply);
-  const slow = el("button", "link", "Slower"); slow.onclick = () => speak(data.reply, 0.7);
-  const tr = el("button", "link", "Translate"); tr.onclick = () => { en.hidden = !en.hidden; };
+  const replay = el("button", "link", "▶ Repetir"); replay.onclick = () => speak(reply);
+  const slow = el("button", "link", "Más lento"); slow.onclick = () => speak(reply, 0.7);
+  const tr = el("button", "link", "Traducir"); tr.disabled = true; tr.onclick = () => { en.hidden = !en.hidden; };
   actions.append(replay, slow, tr);
   t.append(b, actions);
   $("chat").append(t); scrollDown();
-  return speak(data.reply);
+  return { spoken: speak(reply), setEnglish: text => { en.textContent = text; tr.disabled = !text; } };
 }
 
 function addMe(text) {
@@ -291,25 +401,24 @@ function addMe(text) {
   return t;
 }
 
-function addCoach(turnEl, data) {
+function addCoach(turnEl, data, heard) {
   const notes = [];
-  for (const p of data.pronunciation) {
+  for (const p of verifiedFlags(data.pronunciation, heard)) {
     const n = el("div", "note");
     const top = el("div", "row");
     top.append(el("span", "word", p.word), el("span", "pill", p.sound));
-    if (p.heard_as) top.append(el("span", "muted", `heard as “${p.heard_as}”`));
+    if (p.heard_as) top.append(el("span", "muted", `se oyó “${p.heard_as}”`));
     n.append(top, el("div", "", p.tip));
     const row = el("div", "row");
-    const hear = el("button", "link", "▶ Hear it"); hear.onclick = () => speak(p.word, 0.7);
+    const hear = el("button", "link", "▶ Escuchar"); hear.onclick = () => speak(p.word, 0.7);
     const out = el("span", "");
-    const tryIt = el("button", "link", "🎙 Try again");
+    const tryIt = el("button", "link", "🎙 Intentar otra vez");
     tryIt.onclick = async () => {
       if (!SR) return;
-      out.textContent = "Listening…"; out.className = "muted";
-      const alts = await listen().catch(() => null);
-      const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zñ ]/g, "").trim();
-      const hit = alts && alts.some(a => norm(a.transcript).split(/\s+/).includes(norm(p.word)));
-      out.textContent = hit ? "✓ Clear!" : alts ? `Heard “${alts[0].transcript}”. Try once more.` : "Didn't catch that.";
+      out.textContent = "Escuchando…"; out.className = "muted";
+      const res = await startListening({ silenceMs: 1500 }).done;
+      const hit = res?.best && [res.best, ...res.alternatives].some(a => ` ${norm(a)} `.includes(` ${norm(p.word)} `));
+      out.textContent = hit ? "✓ ¡Perfecto!" : res?.best ? `Se oyó “${res.best}”. Inténtalo otra vez.` : "No te oí.";
       out.className = hit ? "result-ok" : "result-bad";
     };
     row.append(hear, SR ? tryIt : "", out);
@@ -320,8 +429,10 @@ function addCoach(turnEl, data) {
   if (data.praise) { const n = el("div", "note ok"); n.append(el("div", "", data.praise)); notes.push(n); }
   if (!notes.length) return;
   const c = el("div", "coach");
-  c.append(el("span", "label", "Coach"));
-  if (data.understood_as) { const u = el("div", "muted"); u.textContent = `You meant: “${data.understood_as}”`; c.append(u); }
+  c.append(el("span", "label", "Entrenador"));
+  if (data.understood_as && norm(data.understood_as) !== norm(heard?.best || "")) {
+    const u = el("div", "muted"); u.textContent = `Querías decir: “${data.understood_as}”`; c.append(u);
+  }
   c.append(...notes);
   turnEl.append(c); scrollDown();
 }
@@ -332,68 +443,86 @@ function setBusy(b, hint = "") {
 }
 
 function describeError(e) {
-  if (e instanceof Anthropic.AuthenticationError) return "Your API key was rejected. Open Settings and paste a valid key.";
-  if (e instanceof Anthropic.RateLimitError) return "Too many requests right now. Wait a moment and try again.";
-  if (e instanceof Anthropic.APIConnectionError) return "Couldn't reach Claude. Check your internet connection.";
-  if (e instanceof Anthropic.APIError) return `Claude returned an error (${e.status}). ${e.message}`;
+  if (e instanceof Anthropic.AuthenticationError) return "Tu clave de API fue rechazada. Abre Ajustes y pega una clave válida.";
+  if (e instanceof Anthropic.RateLimitError) return "Demasiadas solicitudes ahora mismo. Espera un momento y vuelve a intentarlo.";
+  if (e instanceof Anthropic.APIConnectionError) return "No se pudo conectar con Claude. Revisa tu conexión a internet.";
+  if (e instanceof Anthropic.APIError) return `Claude devolvió un error (${e.status}). ${e.message}`;
   return e.message || String(e);
 }
 
 // ---------- flow ----------
-async function turn(alts, typed) {
-  const shown = typed || alts[0].transcript;
-  const meEl = addMe(shown);
-  state.messages.push({ role: "user", content: learnerTurn(alts, typed) });
-  setBusy(true, "Thinking…");
+async function respond() {
+  let ai = null;
+  const data = await askClaude(reply => { setBusy(true, ""); ai = addAI(reply); });
+  ai.setEnglish(data.reply_english);
+  return { data, spoken: ai.spoken };
+}
+
+async function turn(heard, typed) {
+  const meEl = addMe(typed || heard.best);
+  state.messages.push({ role: "user", content: learnerTurn(heard, typed) });
+  setBusy(true, "Pensando…");
   try {
-    const data = await askClaude();
-    addCoach(meEl, data);
-    setBusy(true, "");
-    await addAI(data);
+    const { data, spoken } = await respond();
+    addCoach(meEl, data, typed ? null : heard);
+    await spoken;
   } catch (e) {
     state.messages.pop();
     showError(describeError(e));
-  } finally { setBusy(false, SR ? "" : ""); }
+  } finally { setBusy(false); }
 }
 
 async function startConversation() {
   makeClient();
   if (!client) { openSettings(); return; }
-  speechSynthesis.getVoices();
+  document.documentElement.lang = $("dialect").value;
   $("setup").hidden = true; $("chat").hidden = false; $("dock").hidden = false;
   $("chat").replaceChildren(); showError("");
   $("typedRow").hidden = !!SR;
   if (!SR) $("mic").hidden = true;
-  state.messages = [{ role: "user", content: `Start the scene: ${state.scene.opener}. This is the opening turn, so leave understood_as, pronunciation, grammar and praise empty.` }];
-  setBusy(true, "Starting the scene…");
+  state.messages = [{ role: "user", content: `(Scene start: ${state.scene.opener}. Say your opening line. This is the opening turn, so leave understood_as, pronunciation, grammar and praise empty.)` }];
+  setBusy(true, "Empezando la escena…");
   try {
-    const data = await askClaude();
-    setBusy(true, "");
-    await addAI(data);
+    const { spoken } = await respond();
+    await spoken;
   } catch (e) {
     showError(describeError(e));
   } finally { setBusy(false); }
 }
 
+let listening = null;
 $("mic").onclick = async () => {
+  if (listening) { listening.stop(); return; }
   if (state.busy || !SR) return;
   showError(""); speechSynthesis.cancel();
-  $("mic").classList.add("live"); $("mic").textContent = "● Listening… speak now";
-  let alts = null;
-  try { alts = await listen(); } catch (e) { showError(e.message); }
-  $("mic").classList.remove("live"); $("mic").textContent = "🎙 Tap to speak";
-  if (!alts || !alts[0]?.transcript) { $("hint").textContent = alts === null ? "I didn't hear anything. Tap and speak a little louder." : ""; $("typedRow").hidden = false; return; }
-  turn(alts, null);
+  $("mic").classList.add("live"); $("mic").textContent = "■ Toca cuando termines";
+  $("hint").textContent = "Escuchando… tómate tu tiempo, puedes hacer pausas.";
+  listening = startListening({ onInterim: text => { $("hint").textContent = text || "Escuchando…"; } });
+  const res = await listening.done;
+  listening = null;
+  $("mic").classList.remove("live"); $("mic").textContent = "🎙 Toca para hablar";
+  if (res?.error) { showError(res.error.message); $("hint").textContent = ""; return; }
+  if (!res?.best) { $("hint").textContent = "No oí nada. Toca y habla un poco más alto, o escribe abajo."; $("typedRow").hidden = false; return; }
+  $("hint").textContent = "";
+  turn(res, null);
 };
 $("send").onclick = () => { const v = $("typed").value.trim(); if (!v || state.busy) return; $("typed").value = ""; turn(null, v); };
 $("typed").onkeydown = e => { if (e.key === "Enter") $("send").click(); };
 $("end").onclick = () => { speechSynthesis.cancel(); $("setup").hidden = false; $("chat").hidden = true; $("dock").hidden = true; };
 $("start").onclick = startConversation;
 
-function openSettings() { $("settings").hidden = false; $("apiKey").value = getKey(); $("model").value = getModel(); $("apiKey").focus(); }
+async function fillVoices() {
+  await voicesReady;
+  const vs = spanishVoices();
+  const auto = el("option", "", vs.length ? "Automática (la mejor para tu acento)" : "No hay voces en español"); auto.value = "";
+  $("voice").replaceChildren(auto, ...vs.map(v => { const o = el("option", "", `${v.name} (${v.lang})`); o.value = v.voiceURI; return o; }));
+  $("voice").value = getVoicePref();
+}
+function openSettings() { $("settings").hidden = false; $("apiKey").value = getKey(); $("model").value = getModel(); fillVoices(); $("apiKey").focus(); }
+$("testVoice").onclick = () => { const prev = getVoicePref(); setVoicePref($("voice").value); speak("Hola, ¿qué tal? Me encanta el perro de tu hermano.").finally(() => setVoicePref(prev)); };
 $("settingsBtn").onclick = openSettings;
 $("closeSettings").onclick = () => { $("settings").hidden = true; };
-$("saveKey").onclick = () => { setKey($("apiKey").value.trim()); setModel($("model").value); makeClient(); $("settings").hidden = true; };
+$("saveKey").onclick = () => { setKey($("apiKey").value.trim()); setModel($("model").value); setVoicePref($("voice").value); makeClient(); $("settings").hidden = true; };
 
 $("scenes").replaceChildren(...SCENES.map(s => {
   const b = el("button", "scene"); b.setAttribute("aria-pressed", s === state.scene);
