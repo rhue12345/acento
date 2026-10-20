@@ -2,283 +2,397 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Acento</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap">
 <style>
-/* Layout: one practice card in the center, sound-group picker on top, results under the phrase */
+/* Layout: scene picker -> full-height chat; coach notes sit under each of your turns */
 :root {
   --bg: #f3f6f7; --surface: #ffffff; --fg: #15232b; --muted: #5b6e78;
-  --accent: #0e6e7a; --accent-fg: #ffffff; --line: #d6e0e4;
+  --accent: #0e6e7a; --accent-fg: #ffffff; --line: #d6e0e4; --bubble: #e3eff1;
   --good: #1f8a4c; --warn: #b86e00; --bad: #c0392b;
   --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #0f171b; --surface: #17232a; --fg: #e4eef1; --muted: #93a8b1;
-    --accent: #3fb5c2; --accent-fg: #0f171b; --line: #2a3b43;
+    --accent: #3fb5c2; --accent-fg: #0f171b; --line: #2a3b43; --bubble: #1d3139;
     --good: #4cc27f; --warn: #e6a23c; --bad: #ef6b5e; color-scheme: dark; }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.5 var(--body); }
-main { max-width: 760px; margin: 0 auto; padding: 32px max(16px, env(safe-area-inset-left)) 64px; display: grid; gap: 24px; }
-h1 { font: 700 2.2rem/1.1 var(--display); margin: 0; letter-spacing: -0.01em; }
-header p { margin: 4px 0 0; color: var(--muted); }
-.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.chip { border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 6px 14px; font: 600 0.9rem var(--body); cursor: pointer; }
-.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: grid; gap: 16px; }
+.wrap { max-width: 720px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column;
+  padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-block: 16px; }
+h1 { font: 700 1.6rem/1 var(--display); margin: 0; }
+h2 { font: 700 1.3rem/1.2 var(--display); margin: 0; }
 .label { font: 600 0.75rem var(--body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-.phrase { font: 500 2rem/1.25 var(--display); text-wrap: balance; margin: 0; }
-.phrase .focus { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
-.tip { color: var(--muted); margin: 0; max-width: 62ch; }
-.ipa { font-family: var(--mono); font-size: 0.95rem; color: var(--muted); }
-button.main { border: 0; border-radius: 10px; padding: 12px 18px; font: 600 1rem var(--body); cursor: pointer; background: var(--accent); color: var(--accent-fg); }
-button.alt { border: 1px solid var(--line); border-radius: 10px; padding: 11px 16px; font: 600 1rem var(--body); cursor: pointer; background: transparent; color: var(--fg); }
-button:focus-visible, .chip:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.muted { color: var(--muted); }
+button { font: 600 1rem var(--body); cursor: pointer; border-radius: 10px; }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 button:disabled { opacity: 0.5; cursor: default; }
-button.rec { background: var(--bad); color: #fff; }
-.result { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; }
-.words { display: flex; flex-wrap: wrap; gap: 6px; font: 500 1.3rem var(--display); }
-.w { padding: 2px 8px; border-radius: 6px; border-bottom: 3px solid; }
-.w.ok { border-color: var(--good); }
-.w.close { border-color: var(--warn); }
-.w.miss { border-color: var(--bad); }
-.score { font: 700 2.4rem var(--display); font-variant-numeric: tabular-nums; }
-.heard { font-family: var(--mono); font-size: 0.95rem; color: var(--muted); }
-.note { font-size: 0.9rem; color: var(--muted); }
-select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
-.warn-box { border: 1px solid var(--warn); border-radius: 10px; padding: 12px 16px; }
-@media (prefers-reduced-motion: no-preference) { .pulse { animation: pulse 1s infinite; } }
-@keyframes pulse { 50% { opacity: 0.6; } }
+.primary { border: 0; background: var(--accent); color: var(--accent-fg); padding: 12px 18px; }
+.ghost { border: 1px solid var(--line); background: transparent; color: var(--fg); padding: 8px 14px; }
+.link { border: 0; background: none; color: var(--accent); padding: 0; font-size: 0.95rem; }
+input, select, textarea { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; width: 100%; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 14px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.scenes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.scene { text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--fg); padding: 14px; display: grid; gap: 4px; }
+.scene strong { font-family: var(--display); font-size: 1.05rem; }
+.scene span { color: var(--muted); font-weight: 400; font-size: 0.92rem; }
+.scene[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+
+#chat { flex: 1; display: flex; flex-direction: column; gap: 14px; padding-block: 8px 16px; }
+.turn { display: grid; gap: 6px; max-width: 88%; min-width: 0; }
+.turn.ai { align-self: flex-start; }
+.turn.me { align-self: flex-end; justify-items: end; }
+.bubble { padding: 12px 16px; border-radius: 16px; background: var(--bubble); }
+.me .bubble { background: var(--accent); color: var(--accent-fg); }
+.bubble .es { font-size: 1.1rem; }
+.bubble .en { font-size: 0.9rem; color: var(--muted); margin-top: 4px; }
+.turn-actions { display: flex; gap: 12px; }
+.coach { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; display: grid; gap: 10px; width: 100%; text-align: left; }
+.note { display: grid; gap: 4px; padding-left: 12px; border-left: 3px solid var(--warn); }
+.note.grammar { border-color: var(--accent); }
+.note.ok { border-color: var(--good); }
+.note .word { font: 600 1.05rem var(--display); }
+.note .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.pill { font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.result-ok { color: var(--good); font-weight: 600; } .result-bad { color: var(--bad); font-weight: 600; }
+.typing { color: var(--muted); font-style: italic; }
+
+.dock { position: sticky; bottom: 0; background: var(--bg); padding-block: 12px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.dock-row { display: flex; gap: 8px; align-items: center; }
+.mic { flex: 1; border: 0; background: var(--accent); color: var(--accent-fg); padding: 16px; font-size: 1.1rem; border-radius: 14px; }
+.mic.live { background: var(--bad); color: #fff; }
+@media (prefers-reduced-motion: no-preference) { .mic.live { animation: pulse 1s infinite; } }
+@keyframes pulse { 50% { opacity: 0.7; } }
+.hint { font-size: 0.9rem; color: var(--muted); text-align: center; min-height: 1.4em; }
+.typed { display: flex; gap: 8px; }
+.err { border: 1px solid var(--bad); border-radius: 10px; padding: 10px 14px; }
 </style>
 </head>
 <body>
-<main>
+<div class="wrap">
   <header>
     <h1>Acento</h1>
-    <p>Hear a native model, say it yourself, and see which words came through clearly.</p>
+    <div class="dock-row">
+      <a class="link" href="drills.html">Sound drills</a>
+      <button class="ghost" id="settingsBtn">Settings</button>
+    </div>
   </header>
 
-  <div id="unsupported" class="warn-box" hidden>
-    Speech recognition isn't available in this browser. Open this page in Chrome or Edge on <code>localhost</code> or HTTPS. You can still listen to the model audio and record yourself.
-  </div>
-
-  <div class="row" style="justify-content: space-between">
-    <div class="row" id="groups" role="group" aria-label="Sound to practice"></div>
-    <label class="row"><span class="label">Accent</span>
-      <select id="dialect">
-        <option value="es-MX">Latin America (es-MX)</option>
-        <option value="es-ES">Spain (es-ES)</option>
-        <option value="es-US">US Spanish (es-US)</option>
-      </select>
-    </label>
-  </div>
-
-  <section class="card" aria-live="polite">
-    <div class="row" style="justify-content: space-between">
-      <span class="label" id="groupName"></span>
-      <span class="label" id="counter"></span>
-    </div>
-    <p class="phrase" id="phrase"></p>
-    <span class="ipa" id="ipa"></span>
-    <p class="tip" id="tip"></p>
-    <div class="row">
-      <button class="alt" id="listen">▶ Listen</button>
-      <button class="alt" id="listenSlow">▶ Slow</button>
-      <button class="main" id="record">● Record</button>
-      <button class="alt" id="playback" disabled>Hear yourself</button>
-      <button class="alt" id="next">Next phrase →</button>
-    </div>
-    <div class="result" id="result" hidden>
-      <div class="row" style="gap: 16px; align-items: baseline">
-        <span class="score" id="score"></span>
-        <span class="note" id="verdict"></span>
-      </div>
-      <div class="words" id="words"></div>
-      <div><span class="label">What the recognizer heard</span><div class="heard" id="heard"></div></div>
-    </div>
+  <!-- Settings: API key -->
+  <section class="panel" id="settings" hidden>
+    <h2>Connect to Claude</h2>
+    <p class="muted" style="margin:0">The coach needs an Anthropic API key. Create one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It stays in this browser only and is sent straight to Anthropic. Each conversation turn costs roughly a cent.</p>
+    <label for="apiKey" class="label">API key</label>
+    <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
+    <div class="dock-row"><button class="primary" id="saveKey">Save key</button><button class="ghost" id="closeSettings">Close</button></div>
   </section>
 
-  <p class="note">The score measures how intelligible each word was to a Spanish speech recognizer. Green means it heard the word, amber means close, red means it heard something else. Compare your recording with the model to catch the finer accent details.</p>
-</main>
+  <!-- Setup -->
+  <section id="setup" class="panel">
+    <h2>Choose a scene</h2>
+    <div class="scenes" id="scenes"></div>
+    <div class="grid2">
+      <label class="label">Your level
+        <select id="level">
+          <option value="beginner">Beginner: short, slow sentences</option>
+          <option value="intermediate" selected>Intermediate</option>
+          <option value="advanced">Advanced: natural speed and slang</option>
+        </select>
+      </label>
+      <label class="label">Accent
+        <select id="dialect">
+          <option value="es-MX">Mexico (es-MX)</option>
+          <option value="es-ES">Spain (es-ES)</option>
+          <option value="es-US">US Spanish (es-US)</option>
+          <option value="es-AR">Argentina (es-AR)</option>
+          <option value="es-CO">Colombia (es-CO)</option>
+        </select>
+      </label>
+    </div>
+    <div class="dock-row"><button class="primary" id="start">Start conversation</button></div>
+    <p class="muted" style="margin:0;font-size:0.9rem">Use Chrome or Edge for voice. You talk, your partner answers out loud, and the coach notes the words that didn't come through clearly.</p>
+  </section>
 
-<script>
-const LESSONS = {
-  "Vowels": {
-    tip: "Spanish has five short, pure vowels. Don't glide: 'o' never becomes 'ow', 'e' never becomes 'ay'. Keep every unstressed vowel full, never 'uh'.",
-    items: [
-      { text: "Pepe come pera", focus: ["Pepe", "pera"], ipa: "/ˈpe.pe ˈko.me ˈpe.ɾa/" },
-      { text: "Todo lo que tengo es tuyo", focus: ["Todo", "lo"], ipa: "/ˈto.ðo lo ke ˈteŋ.ɡo es ˈtu.ʝo/" },
-      { text: "La casa es amarilla", focus: ["casa", "amarilla"], ipa: "/la ˈka.sa es a.maˈɾi.ʝa/" },
-    ],
-  },
-  "R / RR": {
-    tip: "Single r between vowels is one quick tap, like the 'tt' in American 'butter'. Initial r and rr are a trill: let the tongue tip flutter against the ridge behind your teeth.",
-    items: [
-      { text: "El perro corre rápido", focus: ["perro", "corre", "rápido"], ipa: "/el ˈpe.ro ˈko.re ˈra.pi.ðo/" },
-      { text: "Pero no es caro", focus: ["Pero", "caro"], ipa: "/ˈpe.ɾo no es ˈka.ɾo/" },
-      { text: "Erre con erre cigarro", focus: ["Erre", "erre", "cigarro"], ipa: "/ˈe.re kon ˈe.re siˈɣa.ro/" },
-    ],
-  },
-  "Soft D, B, G": {
-    tip: "Between vowels, d, b and g soften. 'd' sounds close to the 'th' in 'this', and b/g barely close. At the start of a phrase they stay hard.",
-    items: [
-      { text: "Nada de nada", focus: ["Nada", "nada"], ipa: "/ˈna.ða ðe ˈna.ða/" },
-      { text: "Lo bebo todo", focus: ["bebo", "todo"], ipa: "/lo ˈβe.βo ˈto.ðo/" },
-      { text: "El lago es amargo", focus: ["lago", "amargo"], ipa: "/el ˈla.ɣo es aˈmaɾ.ɣo/" },
-    ],
-  },
-  "P, T, K": {
-    tip: "No puff of air. Hold your hand in front of your mouth: on 'papá' you should feel almost nothing. 't' touches the back of the teeth, not the gum ridge.",
-    items: [
-      { text: "Papá toma café", focus: ["Papá", "toma", "café"], ipa: "/paˈpa ˈto.ma kaˈfe/" },
-      { text: "Tengo tanto tiempo", focus: ["Tengo", "tanto", "tiempo"], ipa: "/ˈteŋ.ɡo ˈtan̪.to ˈtjem.po/" },
-    ],
-  },
-  "J, Ñ, LL": {
-    tip: "'j' (and g before e/i) is a breathy sound from the back of the throat. 'ñ' is like 'ny' in 'canyon'. 'll' and 'y' sound like the 'y' in 'yes' in most regions.",
-    items: [
-      { text: "Mi hijo juega en el jardín", focus: ["hijo", "juega", "jardín"], ipa: "/mi ˈi.xo ˈxwe.ɣa en el xaɾˈðin/" },
-      { text: "El niño tiene sueño", focus: ["niño", "sueño"], ipa: "/el ˈni.ɲo ˈtje.ne ˈswe.ɲo/" },
-      { text: "Ella llega mañana", focus: ["Ella", "llega", "mañana"], ipa: "/ˈe.ʝa ˈʝe.ɣa maˈɲa.na/" },
-    ],
+  <div id="chat" hidden></div>
+
+  <div class="dock" id="dock" hidden>
+    <div id="error" class="err" hidden></div>
+    <div class="dock-row">
+      <button class="mic" id="mic">🎙 Tap to speak</button>
+      <button class="ghost" id="end" title="Choose another scene">End</button>
+    </div>
+    <div class="typed" id="typedRow" hidden>
+      <input id="typed" placeholder="Type in Spanish instead…" autocomplete="off">
+      <button class="ghost" id="send">Send</button>
+    </div>
+    <div class="hint" id="hint"></div>
+  </div>
+</div>
+
+<script type="module">
+import Anthropic from "./vendor/anthropic-sdk.mjs";
+
+const SCENES = [
+  { id: "cafe", title: "Café in Madrid", blurb: "Order breakfast from a chatty waiter.", role: "a friendly, slightly chatty waiter at a busy café in Madrid", opener: "the waiter greets the customer and asks what they'd like" },
+  { id: "taxi", title: "Taxi ride", blurb: "Tell the driver where to go and make small talk.", role: "a talkative taxi driver who loves recommending local food", opener: "the driver asks where the passenger is headed" },
+  { id: "market", title: "Market stall", blurb: "Buy fruit, ask prices, haggle a little.", role: "a fruit vendor at a lively outdoor market", opener: "the vendor calls out the day's best fruit and asks what the customer needs" },
+  { id: "directions", title: "Lost in the city", blurb: "Ask a stranger for directions.", role: "a helpful local on the street", opener: "the local notices the learner looks lost and offers help" },
+  { id: "friend", title: "New friend", blurb: "Get to know someone at a party.", role: "a friendly person at a house party who wants to get to know the learner", opener: "they introduce themselves and ask the learner's name" },
+  { id: "doctor", title: "At the pharmacy", blurb: "Explain a headache and ask for medicine.", role: "a calm pharmacist", opener: "the pharmacist asks how they can help" },
+];
+
+const SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["reply", "reply_english", "understood_as", "pronunciation", "grammar", "praise"],
+  properties: {
+    reply: { type: "string", description: "Your in-character reply in Spanish." },
+    reply_english: { type: "string", description: "English translation of reply." },
+    understood_as: { type: "string", description: "The Spanish sentence the learner most likely meant to say. Empty string on the opening turn." },
+    pronunciation: {
+      type: "array",
+      description: "At most 2 likely pronunciation problems in the learner's last turn. Empty if none or on the opening turn.",
+      items: {
+        type: "object", additionalProperties: false,
+        required: ["word", "heard_as", "sound", "tip"],
+        properties: {
+          word: { type: "string", description: "The word they meant to say." },
+          heard_as: { type: "string", description: "What the recognizer heard instead." },
+          sound: { type: "string", description: "Short name of the sound, e.g. 'rr trill', 'pure o vowel', 'soft d'." },
+          tip: { type: "string", description: "One concrete, physical tip in English, max 25 words." },
+        },
+      },
+    },
+    grammar: { type: "string", description: "One short, gentle grammar or word-choice correction in English, or empty string." },
+    praise: { type: "string", description: "Brief English note on something they said well, or empty string." },
   },
 };
 
 const $ = id => document.getElementById(id);
-const state = { group: Object.keys(LESSONS)[0], index: 0, audioUrl: null };
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (!SR) $("unsupported").hidden = false;
+const state = { scene: SCENES[0], messages: [], busy: false };
+let client = null;
 
-const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zñ ]/g, "").trim();
-
-function lev(a, b) {
-  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
-  for (let j = 1; j <= b.length; j++) d[0][j] = j;
-  for (let i = 1; i <= a.length; i++)
-    for (let j = 1; j <= b.length; j++)
-      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
-  return d[a.length][b.length];
+function getKey() { try { return localStorage.getItem("acento.key") || ""; } catch { return ""; } }
+function setKey(k) { try { localStorage.setItem("acento.key", k); } catch {} }
+function makeClient() {
+  const key = getKey();
+  client = key ? new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true }) : null;
 }
 
-// Align each target word to its best match in the heard words, in order.
-function scoreWords(target, heard) {
-  const h = norm(heard).split(/\s+/).filter(Boolean);
-  let cursor = 0;
-  return target.split(/\s+/).map(word => {
-    const t = norm(word);
-    let best = { sim: 0, at: cursor };
-    for (let k = cursor; k < Math.min(h.length, cursor + 3); k++) {
-      const sim = 1 - lev(t, h[k]) / Math.max(t.length, h[k].length);
-      if (sim > best.sim) best = { sim, at: k };
-    }
-    if (best.sim >= 0.5) cursor = best.at + 1;
-    return { word, sim: best.sim, cls: best.sim === 1 ? "ok" : best.sim >= 0.6 ? "close" : "miss" };
+function systemPrompt() {
+  const level = $("level").value, dialect = $("dialect").value;
+  return `You are a Spanish conversation partner and accent coach for an English-speaking learner.
+
+Scene: you are ${state.scene.role}. Stay in character and keep the conversation moving with a question or prompt at the end of each reply.
+Learner level: ${level}. ${level === "beginner" ? "Use short, simple sentences (max ~12 words each), present tense, common words." : level === "intermediate" ? "Use natural everyday Spanish, 1-3 sentences." : "Speak naturally, with regional expressions where they fit."}
+Regional variety: ${dialect}. Use vocabulary and forms from that region (e.g. vosotros in Spain, voseo in Argentina).
+
+Each learner turn gives you what a Spanish speech recognizer heard, as several guesses with confidence scores. The recognizer is the only evidence you have of their pronunciation. Use it like this:
+- Work out what they most likely meant from context.
+- Words where the recognizer heard something different from what they meant, or low confidence, point to pronunciation problems. Reason about which sound caused it: e.g. "perro" heard as "pero" = weak rr trill; "pelo" heard as "pero" = r/l; "casa" heard as "caza" is fine in Latin America; an English-style vowel can turn "lo" into "low"/"la".
+- Only flag problems the evidence supports. Never invent errors. If they were understood perfectly, leave pronunciation empty and say what went well in praise.
+- Focus on sounds English speakers struggle with: r tap vs rr trill, pure vowels, soft d/b/g between vowels, unaspirated p/t/k, j, ñ, ll/y, stress on the wrong syllable.
+- If the learner typed instead of speaking, leave pronunciation empty.
+
+Reply to what they meant, not to recognizer mistakes. Keep corrections short and kind; the conversation is the point.`;
+}
+
+function learnerTurn(alts, typed) {
+  if (typed) return `The learner typed (no audio): "${typed}"`;
+  const lines = alts.map((a, i) => `${i + 1}. "${a.transcript}"${a.confidence ? ` (confidence ${a.confidence.toFixed(2)})` : ""}`);
+  return `Speech recognizer guesses for the learner's last turn, best first:\n${lines.join("\n")}`;
+}
+
+async function askClaude() {
+  const response = await client.beta.messages.create({
+    model: "claude-opus-5-5",
+    max_tokens: 16000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
+    cache_control: { type: "ephemeral" },
+    system: systemPrompt(),
+    messages: state.messages,
+  });
+  if (response.stop_reason === "refusal") throw new Error("The coach declined to answer that. Try saying something else.");
+  // Keep the full content (thinking blocks included) so later turns stay valid.
+  state.messages.push({ role: "assistant", content: response.content });
+  const text = response.content.filter(b => b.type === "text").map(b => b.text).join("");
+  return JSON.parse(text);
+}
+
+// ---------- speech ----------
+function voiceFor(lang) {
+  const vs = speechSynthesis.getVoices();
+  return vs.find(v => v.lang.replace("_", "-") === lang) || vs.find(v => v.lang.startsWith("es"));
+}
+function speak(text, rate = 1) {
+  return new Promise(resolve => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = $("dialect").value; u.rate = rate;
+    const v = voiceFor(u.lang); if (v) u.voice = v;
+    u.onend = u.onerror = resolve;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  });
+}
+function listen() {
+  return new Promise((resolve, reject) => {
+    const rec = new SR();
+    rec.lang = $("dialect").value; rec.maxAlternatives = 5; rec.interimResults = false;
+    let alts = null;
+    rec.onresult = e => { alts = Array.from(e.results[0]).map(a => ({ transcript: a.transcript, confidence: a.confidence })); };
+    rec.onerror = e => { if (e.error === "not-allowed") reject(new Error("Microphone access is blocked. Allow the microphone for this site in your browser settings.")); };
+    rec.onend = () => resolve(alts);
+    rec.start();
   });
 }
 
-function current() { return LESSONS[state.group].items[state.index]; }
+// ---------- rendering ----------
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function scrollDown() { window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); }
 
-function render() {
-  $("groups").replaceChildren(...Object.keys(LESSONS).map(name => {
-    const b = document.createElement("button");
-    b.className = "chip"; b.textContent = name;
-    b.setAttribute("aria-pressed", name === state.group);
-    b.onclick = () => { state.group = name; state.index = 0; render(); };
-    return b;
-  }));
-  const item = current(), lesson = LESSONS[state.group];
-  $("groupName").textContent = state.group;
-  $("counter").textContent = `${state.index + 1} / ${lesson.items.length}`;
-  $("phrase").replaceChildren(...item.text.split(" ").flatMap((w, i) => {
-    const span = document.createElement("span");
-    span.textContent = w;
-    if (item.focus.includes(w)) span.className = "focus";
-    return i ? [" ", span] : [span];
-  }));
-  $("ipa").textContent = item.ipa;
-  $("tip").textContent = lesson.tip;
-  $("result").hidden = true;
-  $("playback").disabled = true;
+function addAI(data) {
+  const t = el("div", "turn ai");
+  const b = el("div", "bubble");
+  b.append(el("div", "es", data.reply));
+  const en = el("div", "en", data.reply_english); en.hidden = true; b.append(en);
+  const actions = el("div", "turn-actions");
+  const replay = el("button", "link", "▶ Replay"); replay.onclick = () => speak(data.reply);
+  const slow = el("button", "link", "Slower"); slow.onclick = () => speak(data.reply, 0.7);
+  const tr = el("button", "link", "Translate"); tr.onclick = () => { en.hidden = !en.hidden; };
+  actions.append(replay, slow, tr);
+  t.append(b, actions);
+  $("chat").append(t); scrollDown();
+  return speak(data.reply);
 }
 
-function speak(rate) {
-  const u = new SpeechSynthesisUtterance(current().text);
-  const lang = $("dialect").value;
-  u.lang = lang; u.rate = rate;
-  const voice = speechSynthesis.getVoices().find(v => v.lang.replace("_", "-") === lang)
-    || speechSynthesis.getVoices().find(v => v.lang.startsWith("es"));
-  if (voice) u.voice = voice;
-  speechSynthesis.cancel(); speechSynthesis.speak(u);
+function addMe(text) {
+  const t = el("div", "turn me");
+  t.append(el("div", "bubble", text));
+  $("chat").append(t); scrollDown();
+  return t;
 }
-$("listen").onclick = () => speak(0.95);
-$("listenSlow").onclick = () => speak(0.6);
-$("next").onclick = () => { state.index = (state.index + 1) % LESSONS[state.group].items.length; render(); };
 
-let recording = false;
-$("record").onclick = async () => {
-  if (recording) return;
-  let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-  catch { $("unsupported").hidden = false; $("unsupported").textContent = "Microphone access was blocked. Allow the microphone for this page in your browser's site settings, then try again."; return; }
+function addCoach(turnEl, data) {
+  const notes = [];
+  for (const p of data.pronunciation) {
+    const n = el("div", "note");
+    const top = el("div", "row");
+    top.append(el("span", "word", p.word), el("span", "pill", p.sound));
+    if (p.heard_as) top.append(el("span", "muted", `heard as “${p.heard_as}”`));
+    n.append(top, el("div", "", p.tip));
+    const row = el("div", "row");
+    const hear = el("button", "link", "▶ Hear it"); hear.onclick = () => speak(p.word, 0.7);
+    const out = el("span", "");
+    const tryIt = el("button", "link", "🎙 Try again");
+    tryIt.onclick = async () => {
+      if (!SR) return;
+      out.textContent = "Listening…"; out.className = "muted";
+      const alts = await listen().catch(() => null);
+      const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zñ ]/g, "").trim();
+      const hit = alts && alts.some(a => norm(a.transcript).split(/\s+/).includes(norm(p.word)));
+      out.textContent = hit ? "✓ Clear!" : alts ? `Heard “${alts[0].transcript}”. Try once more.` : "Didn't catch that.";
+      out.className = hit ? "result-ok" : "result-bad";
+    };
+    row.append(hear, SR ? tryIt : "", out);
+    n.append(row);
+    notes.push(n);
+  }
+  if (data.grammar) { const n = el("div", "note grammar"); n.append(el("div", "", data.grammar)); notes.push(n); }
+  if (data.praise) { const n = el("div", "note ok"); n.append(el("div", "", data.praise)); notes.push(n); }
+  if (!notes.length) return;
+  const c = el("div", "coach");
+  c.append(el("span", "label", "Coach"));
+  if (data.understood_as) { const u = el("div", "muted"); u.textContent = `You meant: “${data.understood_as}”`; c.append(u); }
+  c.append(...notes);
+  turnEl.append(c); scrollDown();
+}
 
-  recording = true;
-  const btn = $("record");
-  btn.textContent = "● Listening…"; btn.classList.add("rec", "pulse");
+function showError(msg) { $("error").textContent = msg; $("error").hidden = !msg; }
+function setBusy(b, hint = "") {
+  state.busy = b; $("mic").disabled = b; $("send").disabled = b; $("hint").textContent = hint;
+}
 
-  const chunks = [];
-  const mr = new MediaRecorder(stream);
-  mr.ondataavailable = e => chunks.push(e.data);
-  mr.onstop = () => {
-    stream.getTracks().forEach(t => t.stop());
-    if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
-    state.audioUrl = URL.createObjectURL(new Blob(chunks, { type: mr.mimeType }));
-    $("playback").disabled = false;
-  };
-  mr.start();
+function describeError(e) {
+  if (e instanceof Anthropic.AuthenticationError) return "Your API key was rejected. Open Settings and paste a valid key.";
+  if (e instanceof Anthropic.RateLimitError) return "Too many requests right now. Wait a moment and try again.";
+  if (e instanceof Anthropic.APIConnectionError) return "Couldn't reach Claude. Check your internet connection.";
+  if (e instanceof Anthropic.APIError) return `Claude returned an error (${e.status}). ${e.message}`;
+  return e.message || String(e);
+}
 
-  const finish = transcripts => {
-    recording = false;
-    btn.textContent = "● Record"; btn.classList.remove("rec", "pulse");
-    if (mr.state !== "inactive") mr.stop();
-    if (transcripts) showResult(transcripts);
-  };
+// ---------- flow ----------
+async function turn(alts, typed) {
+  const shown = typed || alts[0].transcript;
+  const meEl = addMe(shown);
+  state.messages.push({ role: "user", content: learnerTurn(alts, typed) });
+  setBusy(true, "Thinking…");
+  try {
+    const data = await askClaude();
+    addCoach(meEl, data);
+    setBusy(true, "");
+    await addAI(data);
+  } catch (e) {
+    state.messages.pop();
+    showError(describeError(e));
+  } finally { setBusy(false, SR ? "" : ""); }
+}
 
-  if (!SR) { setTimeout(() => finish(null), 4000); return; }
-  const rec = new SR();
-  rec.lang = $("dialect").value; rec.maxAlternatives = 5; rec.interimResults = false;
-  let got = null;
-  rec.onresult = e => { got = Array.from(e.results[0]).map(a => a.transcript); };
-  rec.onerror = () => {};
-  rec.onend = () => finish(got || [""]);
-  rec.start();
+async function startConversation() {
+  makeClient();
+  if (!client) { openSettings(); return; }
+  speechSynthesis.getVoices();
+  $("setup").hidden = true; $("chat").hidden = false; $("dock").hidden = false;
+  $("chat").replaceChildren(); showError("");
+  $("typedRow").hidden = !!SR;
+  if (!SR) $("mic").hidden = true;
+  state.messages = [{ role: "user", content: `Start the scene: ${state.scene.opener}. This is the opening turn, so leave understood_as, pronunciation, grammar and praise empty.` }];
+  setBusy(true, "Starting the scene…");
+  try {
+    const data = await askClaude();
+    setBusy(true, "");
+    await addAI(data);
+  } catch (e) {
+    showError(describeError(e));
+  } finally { setBusy(false); }
+}
+
+$("mic").onclick = async () => {
+  if (state.busy || !SR) return;
+  showError(""); speechSynthesis.cancel();
+  $("mic").classList.add("live"); $("mic").textContent = "● Listening… speak now";
+  let alts = null;
+  try { alts = await listen(); } catch (e) { showError(e.message); }
+  $("mic").classList.remove("live"); $("mic").textContent = "🎙 Tap to speak";
+  if (!alts || !alts[0]?.transcript) { $("hint").textContent = alts === null ? "I didn't hear anything. Tap and speak a little louder." : ""; $("typedRow").hidden = false; return; }
+  turn(alts, null);
 };
+$("send").onclick = () => { const v = $("typed").value.trim(); if (!v || state.busy) return; $("typed").value = ""; turn(null, v); };
+$("typed").onkeydown = e => { if (e.key === "Enter") $("send").click(); };
+$("end").onclick = () => { speechSynthesis.cancel(); $("setup").hidden = false; $("chat").hidden = true; $("dock").hidden = true; };
+$("start").onclick = startConversation;
 
-function showResult(alternatives) {
-  const target = current().text;
-  // Use the alternative that best matches the target, so one odd guess doesn't sink the score.
-  const scored = alternatives.map(alt => ({ alt, words: scoreWords(target, alt) }))
-    .map(r => ({ ...r, total: r.words.reduce((s, w) => s + w.sim, 0) / r.words.length }))
-    .sort((a, b) => b.total - a.total)[0];
-  const pct = Math.round(scored.total * 100);
-  $("score").textContent = pct + "%";
-  $("score").style.color = pct >= 90 ? "var(--good)" : pct >= 65 ? "var(--warn)" : "var(--bad)";
-  $("verdict").textContent = pct >= 90 ? "Clear. Now match the rhythm of the model." :
-    pct >= 65 ? "Mostly clear. Replay the model and focus on the amber and red words." :
-    scored.alt ? "Hard to understand. Try the slow model, then go word by word." : "Nothing was heard. Check your microphone and speak a little louder.";
-  $("words").replaceChildren(...scored.words.map(w => {
-    const s = document.createElement("span"); s.className = "w " + w.cls; s.textContent = w.word; return s;
-  }));
-  $("heard").textContent = scored.alt || "—";
-  $("result").hidden = false;
-}
+function openSettings() { $("settings").hidden = false; $("apiKey").value = getKey(); $("apiKey").focus(); }
+$("settingsBtn").onclick = openSettings;
+$("closeSettings").onclick = () => { $("settings").hidden = true; };
+$("saveKey").onclick = () => { setKey($("apiKey").value.trim()); makeClient(); $("settings").hidden = true; };
 
-$("playback").onclick = () => { if (state.audioUrl) new Audio(state.audioUrl).play(); };
-speechSynthesis.onvoiceschanged = () => {};
-render();
+$("scenes").replaceChildren(...SCENES.map(s => {
+  const b = el("button", "scene"); b.setAttribute("aria-pressed", s === state.scene);
+  b.append(el("strong", "", s.title), el("span", "", s.blurb));
+  b.onclick = () => { state.scene = s; document.querySelectorAll(".scene").forEach(x => x.setAttribute("aria-pressed", x === b)); };
+  return b;
+}));
+if (!getKey()) openSettings();
 </script>
 </body>
 </html>
