@@ -89,10 +89,15 @@ input, select, textarea { font: inherit; color: var(--fg); background: var(--sur
   <!-- Settings: API key -->
   <section class="panel" id="settings" hidden>
     <h2>Connect to Claude</h2>
-    <p class="muted" style="margin:0">The coach needs an Anthropic API key. Create one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It stays in this browser only and is sent straight to Anthropic. Each conversation turn costs roughly a cent.</p>
+    <p class="muted" style="margin:0">The coach needs an Anthropic API key. Create one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. It stays in this browser only and is sent straight to Anthropic. Usage is billed to your Anthropic account.</p>
     <label for="apiKey" class="label">API key</label>
     <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
-    <div class="dock-row"><button class="primary" id="saveKey">Save key</button><button class="ghost" id="closeSettings">Close</button></div>
+    <label for="model" class="label">Coach model</label>
+    <select id="model">
+      <option value="claude-haiku-5-5">Everyday (Claude Haiku 5.5): well under a cent per conversation</option>
+      <option value="claude-opus-5-5">Best feedback (Claude Opus 5.5): about 1–3¢ per turn</option>
+    </select>
+    <div class="dock-row"><button class="primary" id="saveKey">Save</button><button class="ghost" id="closeSettings">Close</button></div>
   </section>
 
   <!-- Setup -->
@@ -182,6 +187,8 @@ const state = { scene: SCENES[0], messages: [], busy: false };
 let client = null;
 
 function getKey() { try { return localStorage.getItem("acento.key") || ""; } catch { return ""; } }
+function getModel() { try { return localStorage.getItem("acento.model") || "claude-haiku-5-5"; } catch { return "claude-haiku-5-5"; } }
+function setModel(m) { try { localStorage.setItem("acento.model", m); } catch {} }
 function setKey(k) { try { localStorage.setItem("acento.key", k); } catch {} }
 function makeClient() {
   const key = getKey();
@@ -213,16 +220,18 @@ function learnerTurn(alts, typed) {
 }
 
 async function askClaude() {
-  const response = await client.beta.messages.create({
-    model: "claude-opus-5-5",
+  const params = {
+    model: getModel(),
     max_tokens: 16000,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
     output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
     cache_control: { type: "ephemeral" },
     system: systemPrompt(),
     messages: state.messages,
-  });
+  };
+  // Opus can hand a declined request to a fallback model server-side; Haiku has no fallback.
+  const response = params.model === "claude-opus-5-5"
+    ? await client.beta.messages.create({ ...params, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" })
+    : await client.messages.create(params);
   if (response.stop_reason === "refusal") throw new Error("The coach declined to answer that. Try saying something else.");
   // Keep the full content (thinking blocks included) so later turns stay valid.
   state.messages.push({ role: "assistant", content: response.content });
@@ -381,10 +390,10 @@ $("typed").onkeydown = e => { if (e.key === "Enter") $("send").click(); };
 $("end").onclick = () => { speechSynthesis.cancel(); $("setup").hidden = false; $("chat").hidden = true; $("dock").hidden = true; };
 $("start").onclick = startConversation;
 
-function openSettings() { $("settings").hidden = false; $("apiKey").value = getKey(); $("apiKey").focus(); }
+function openSettings() { $("settings").hidden = false; $("apiKey").value = getKey(); $("model").value = getModel(); $("apiKey").focus(); }
 $("settingsBtn").onclick = openSettings;
 $("closeSettings").onclick = () => { $("settings").hidden = true; };
-$("saveKey").onclick = () => { setKey($("apiKey").value.trim()); makeClient(); $("settings").hidden = true; };
+$("saveKey").onclick = () => { setKey($("apiKey").value.trim()); setModel($("model").value); makeClient(); $("settings").hidden = true; };
 
 $("scenes").replaceChildren(...SCENES.map(s => {
   const b = el("button", "scene"); b.setAttribute("aria-pressed", s === state.scene);
