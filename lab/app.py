@@ -90,6 +90,7 @@ def explain(meta):
     try:
         return voice.speak(voice.script(meta), meta["variety"])
     except Exception as e:  # the written result is already saved; just say why there's no audio
+        print("spoken explanation failed:", e, flush=True)
         gr.Warning(f"No se pudo generar la explicación hablada: {e}")
         return None
 

@@ -39,12 +39,16 @@ def _request(path, body=None):
             return r.read()
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="ignore")
-        if e.code == 401:
-            raise RuntimeError("Se acabaron tus caracteres de ElevenLabs este mes." if "quota" in detail.lower()
-                               else "La clave de ElevenLabs no es válida.")
+        print(f"ElevenLabs {path.split('?')[0]} -> {e.code}: {detail[:500]}", flush=True)
+        try:  # ElevenLabs explains the problem in detail.message (missing permission, plan, quota...)
+            reason = json.loads(detail)["detail"]["message"]
+        except Exception:
+            reason = detail[:200]
+        if e.code == 401 and "quota" in detail.lower():
+            raise RuntimeError("Se acabaron tus caracteres de ElevenLabs este mes.")
         if e.code == 429:
             raise RuntimeError("ElevenLabs está ocupado o se acabaron tus caracteres.")
-        raise RuntimeError(f"ElevenLabs devolvió un error ({e.code}).")
+        raise RuntimeError(f"ElevenLabs devolvió un error ({e.code}): {reason}")
 
 
 def _voice_text(v):
