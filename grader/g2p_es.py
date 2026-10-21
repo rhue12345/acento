@@ -24,12 +24,9 @@ STRONG = set("aeo")
 ACCENTED = {"á": "a", "é": "e", "í": "i", "ó": "o", "ú": "u"}
 
 # Phones that are fine in place of the expected one. Keys are expected phones.
-# Approximants are often realized (and recognized) as stops in careful speech,
-# and some consonants vary freely across natives.
+# Hard b/d/g between vowels are NOT here: that's a typical English-speaker habit,
+# graded as a minor issue by compare.py.
 FREE_VARIANTS = {
-    "β": {"b"},
-    "ð": {"d"},
-    "ɣ": {"ɡ"},
     "ʝ": {"j", "ɟʝ", "dʒ"},
     "s": {"z"},          # voicing before voiced consonants ("mismo")
     "ŋ": {"n"},

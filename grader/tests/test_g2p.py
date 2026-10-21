@@ -40,6 +40,6 @@ CASES = [
 def test_transcription(variety, text, expected):
     assert to_ipa(transcribe(text, variety)) == expected
 
-def test_variants_accept_stops_for_approximants():
+def test_hard_stop_is_not_a_free_variant():
     w = transcribe("nada", "es-MX")[0]
-    assert "d" in w.variants[2]
+    assert "d" not in w.variants[2]
