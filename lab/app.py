@@ -17,6 +17,7 @@ import gradio as gr
 
 import analysis
 import storage
+import voice
 from grader.compare import diagnose
 from grader.g2p_es import to_ipa
 from grader.recognize import load_audio, recognize
@@ -76,7 +77,21 @@ def analyze(audio, name, role, variety_label, phrase_id, take):
         "issues": [asdict(i) for i in issues],
     }
     storage.save_recording(audio, meta)
-    return result_markdown(meta) + "\n\n*Guardado.*", progress(name)
+    return result_markdown(meta) + "\n\n*Guardado.*", progress(name), meta
+
+
+def explain(meta):
+    """Spoken version of the result, for learners only."""
+    if not meta or meta["role"] != "learner":
+        return None
+    if not voice.enabled():
+        gr.Warning("Para oír la explicación, añade ELEVENLABS_API_KEY en los secretos del Space.")
+        return None
+    try:
+        return voice.speak(voice.script(meta), meta["variety"])
+    except Exception as e:  # the written result is already saved; just say why there's no audio
+        gr.Warning(f"No se pudo generar la explicación hablada: {e}")
+        return None
 
 
 def next_phrase(phrase_id):
@@ -137,14 +152,16 @@ with gr.Blocks(title="Acento Lab") as demo:
             go = gr.Button("Guardar y analizar", variant="primary")
             nxt = gr.Button("Siguiente frase →")
         result = gr.Markdown()
+        coach = gr.Audio(label="Explicación hablada", type="filepath", autoplay=True, interactive=False)
         prog = gr.Markdown()
+        last = gr.State(None)
 
         for comp in (phrase, role, take):
             comp.change(phrase_card, [phrase, role, take], card)
         role.change(lambda r: gr.update(visible=r == "Aprendiz"), role, take)
         name.change(progress, name, prog)
-        go.click(analyze, [audio, name, role, variety, phrase, take], [result, prog])
-        nxt.click(next_phrase, phrase, [phrase, audio]).then(lambda: "", None, result)
+        go.click(analyze, [audio, name, role, variety, phrase, take], [result, prog, last]).success(explain, last, coach)
+        nxt.click(next_phrase, phrase, [phrase, audio]).then(lambda: ("", None), None, [result, coach])
 
     with gr.Tab("Calificar"):
         gr.Markdown("Para la persona nativa. No verás quién grabó ni qué dijo el evaluador.")

@@ -26,10 +26,12 @@ def main(user):
     api.create_repo(dataset, repo_type="dataset", private=True, exist_ok=True)
     api.add_space_secret(space, "HF_TOKEN", token)
     api.add_space_variable(space, "DATASET_REPO", dataset)
+    if os.environ.get("ELEVENLABS_API_KEY"):  # spoken feedback; can also be added in the Space settings
+        api.add_space_secret(space, "ELEVENLABS_API_KEY", os.environ["ELEVENLABS_API_KEY"])
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        for f in ("app.py", "storage.py", "analysis.py", "phrases.py", "requirements.txt", "packages.txt"):
+        for f in ("app.py", "storage.py", "analysis.py", "phrases.py", "voice.py", "requirements.txt", "packages.txt"):
             shutil.copy(REPO_ROOT / "lab" / f, tmp / f)
         shutil.copy(REPO_ROOT / "lab" / "SPACE_README.md", tmp / "README.md")
         shutil.copytree(REPO_ROOT / "grader", tmp / "grader", ignore=shutil.ignore_patterns("tests", "__pycache__", "dev_synth.py"))
