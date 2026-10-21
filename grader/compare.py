@@ -96,6 +96,7 @@ class Issue:
     severity: str       # "error" = clear English accent, "minor" = non-native but common,
                         # "unsure" = recognizer disagreement we can't interpret yet (not shown to learners)
     note: str           # Spanish explanation for the learner
+    word_index: int = -1  # position of the word in the phrase (-1 for inserted sounds)
 
 
 VOWELS = set("aeiou")
@@ -172,5 +173,5 @@ def diagnose(text, heard_tokens, variety="es-MX"):
         result = _classify(exp, h, syl == w.stress)
         if result:
             kind, severity, note = result
-            issues.append(Issue(w.text, exp, h or "", kind, severity, note))
+            issues.append(Issue(w.text, exp, h or "", kind, severity, note, wi))
     return words, issues, heard
