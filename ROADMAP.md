@@ -19,8 +19,9 @@ Native-speaker review is the bar for every phase: if the grader says a sound is 
 - [x] Custom Spanish pronunciation rules with regional variants (es-MX, es-ES, es-AR, es-CO, es-US)
 
 ### 1. Accent Lab (testing tool)
-Status: built (`lab/`). Next step: deploy with `HF_TOKEN=... python lab/deploy.py rhu3`
-(needs the HF_TOKEN environment variable), then record and rate.
+Status: live at https://huggingface.co/spaces/rhu3/acento-lab (recordings and ratings go to the
+private dataset rhu3/acento-lab-data). Redeploy with `HF_TOKEN=... python lab/deploy.py rhu3`.
+Next step: record and rate.
 
 A page for building and checking the grader, used by the two of us:
 - Record a test phrase, see expected vs. heard sounds side by side.
