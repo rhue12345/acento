@@ -15,10 +15,13 @@ Native-speaker review is the bar for every phase: if the grader says a sound is 
 
 ### 0. Feasibility
 - [x] Generate expected Spanish phonemes (espeak-ng works; needs Spanish-specific fixes)
-- [ ] Run the phoneme recognizer on real recordings (blocked: needs huggingface.co network access)
-- [ ] Custom Spanish pronunciation rules with regional variants (es-MX, es-ES, es-AR, es-CO, es-US)
+- [x] Run the phoneme recognizer (works; smoke test on espeak audio: 1 false alarm on native-style speech, 21 catches on English-accented speech)
+- [x] Custom Spanish pronunciation rules with regional variants (es-MX, es-ES, es-AR, es-CO, es-US)
 
 ### 1. Accent Lab (testing tool)
+Status: built (`lab/`). Next step: deploy with `HF_TOKEN=... python lab/deploy.py rhu3`
+(needs the HF_TOKEN environment variable), then record and rate.
+
 A page for building and checking the grader, used by the two of us:
 - Record a test phrase, see expected vs. heard sounds side by side.
 - **Rating mode:** a native speaker listens and marks each word or sound as native / not native.
