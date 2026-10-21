@@ -93,7 +93,8 @@ class Issue:
     expected: str
     heard: str          # "" when the sound was dropped
     kind: str           # short id, e.g. "rr_tap"
-    severity: str       # "error" = clear English accent, "minor" = non-native but common
+    severity: str       # "error" = clear English accent, "minor" = non-native but common,
+                        # "unsure" = recognizer disagreement we can't interpret yet (not shown to learners)
     note: str           # Spanish explanation for the learner
 
 
@@ -105,7 +106,11 @@ def _classify(exp, heard, stressed_vowel):
     if heard is None:
         if exp in VOWELS:
             return ("vowel_dropped", "error", "Se perdió una vocal. En español todas las vocales se pronuncian completas.")
-        return ("dropped", "minor", f"No se oyó el sonido [{exp}].")
+        return ("dropped", "unsure", f"No se oyó el sonido [{exp}].")
+    if exp in ("r", "ɾ") and heard in ("ɚ", "ɝ"):
+        return ("r_english", "error", "Sonó como la 'er' del inglés americano. La r española se hace con la punta de la lengua, sin curvarla hacia atrás.")
+    if exp == "i" and heard == "aɪ":
+        return ("vowel_glide", "error", "La i sonó como 'ai' (como 'my' en inglés). En español la i es corta y pura.")
     if exp == "r":
         if heard == "ɾ":
             return ("rr_tap", "error", "Esta r es fuerte (vibrante múltiple): la punta de la lengua debe vibrar varias veces, no solo tocar una vez.")
@@ -141,7 +146,7 @@ def _classify(exp, heard, stressed_vowel):
         return None
     if heard == "ɹ":
         return ("r_english", "error", "Se oyó una r inglesa.")
-    return ("different", "minor", f"Se esperaba [{exp}] y se oyó [{heard}].")
+    return ("different", "unsure", f"Se esperaba [{exp}] y se oyó [{heard}].")
 
 
 def diagnose(text, heard_tokens, variety="es-MX"):
