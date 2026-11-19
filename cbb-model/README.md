@@ -25,21 +25,24 @@ python predict.py --top 25   # current power ratings
 
 ## Backtest
 
-Walk-forward: each season is predicted by a model trained only on earlier seasons. Seasons 2012–2027 (≈90,000 games):
+Walk-forward: each season is predicted by a model trained only on earlier seasons. Seasons 2012–2027, 89,485 real games. `python verify.py` reproduces this and writes every prediction next to the actual result in `backtest_predictions.csv`.
 
-| Method | Accuracy | Log loss |
+| Method | All games | D-I vs D-I only (80,918 games) |
 |---|---|---|
 | Always pick the home team | 67.8% (home games only) | – |
 | Pick the higher-Elo team | 70.1% | – |
-| Logistic regression | 74.3% | 0.509 |
-| Gradient boosting | 74.5% | 0.504 |
-| **Ensemble** | **74.4%** | **0.506** |
+| **This model** | **74.4%** | **72.5%** |
 
-- Postseason (conference + NCAA tournaments): 67.5% accuracy — those games are between closer-matched teams.
-- Calibration is good: when the favorite is given 70–80%, it wins 73.5% of the time; 90%+ favorites win 95%.
+The **72.5%** is the honest number for games between Division I teams. The 74.4% is inflated by easy wins over small non-D-I schools.
+
+Checks in `verify.py`:
+- **No look-ahead:** ratings recomputed with every game after a cutoff date deleted give identical features for that date's games.
+- **Calibration (D-I vs D-I):** favorites given 60–70% won 64.0%; 70–80% won 72.8%; 80–90% won 83.7%; 90%+ won 93.9%.
+- **Postseason** (conference + NCAA tournaments): 67.5% — closer-matched teams.
 - Spread error (mean absolute) is about 10 points.
+- **Caveat:** the rating settings (Elo K, carryover, prior strength, etc.) were picked by hand, not tuned on the test seasons, but they haven't been checked against a separate holdout either.
 
-For context, Vegas closing lines pick roughly 75–76% of college basketball winners, so this is close to the practical ceiling for a results-only model. Full numbers are in `backtest.json`.
+The model hasn't been compared with betting lines yet. That comparison would show whether it is competitive.
 
 ## Ideas to improve it
 
