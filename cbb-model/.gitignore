@@ -4,3 +4,6 @@ backtest_predictions.csv
 tossup_results.csv
 tune_log.txt
 avail_log.txt
+lines_log.txt
+vs_vegas_games.csv
+vegas_log.txt
