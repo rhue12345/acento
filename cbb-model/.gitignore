@@ -3,3 +3,4 @@ model.pkl
 backtest_predictions.csv
 tossup_results.csv
 tune_log.txt
+avail_log.txt
