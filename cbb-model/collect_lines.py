@@ -2,6 +2,7 @@
 
     python collect_lines.py                 # 1,000 sampled D-I games per season
     python collect_lines.py --per-season 0  # every D-I game (slow)
+    python collect_lines.py --per-season 0 --seasons 2026 2027
 
 Source: sportsdataverse/hoopR-mbb-raw, which stores ESPN's game JSON. Its
 "pickcenter" block holds the lines (consensus/Caesars through 2023, DraftKings
@@ -71,13 +72,14 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--per-season", type=int, default=1000)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--seasons", type=int, nargs="+", default=SEASONS)
     args = ap.parse_args()
 
     done = set()
     if OUT.exists():
         done = {json.loads(line)["game_id"] for line in OUT.open()}
     todo = []
-    for season in SEASONS:
+    for season in args.seasons:
         g = d1_games(season)
         if args.per_season and len(g) > args.per_season:
             g = g.sample(args.per_season, random_state=season)
